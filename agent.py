@@ -337,7 +337,48 @@ _WEATHER_CODES = {
     99: "a thunderstorm with hail",
 }
 
-DEFAULT_PLACE = os.getenv("NEO_HOME_TOWN", "Warren, New Jersey")
+def _home_town():
+    """Where "what's the weather" means, when they didn't name a place.
+
+    This used to be hardcoded to the town the first owner lived in, which then
+    shipped to a public repository and answered every stranger's weather
+    question with somebody else's home. Two separate failures in one line: a
+    real person's location published in source, and a confidently wrong answer
+    for everyone else.
+
+    Derived, never guessed at author-time. In order:
+      1. NEO_HOME_TOWN, if they set it
+      2. what they have told Neo (profile.json), which onboarding can fill
+      3. the Mac's own timezone, which is a city and is already on the machine
+      4. nothing — and get_weather then ASKS instead of inventing a place
+    """
+    env = (os.getenv("NEO_HOME_TOWN") or "").strip()
+    if env:
+        return env
+    try:
+        import person
+        told = ((person.load().get("person") or {}).get("place") or "").strip()
+        if told:
+            return told
+    except Exception:
+        pass
+    try:
+        # "America/New_York" -> "New York". Approximate, on-device, no
+        # permission, no network, and never anyone's street.
+        import time as _t
+        tz = (_t.tzname[0] or "")
+        path = os.path.realpath("/etc/localtime")
+        if "/zoneinfo/" in path:
+            tz = path.split("/zoneinfo/", 1)[1]
+        city = tz.split("/")[-1].replace("_", " ").strip()
+        if city and city.lower() not in ("utc", "gmt", "universal", "local"):
+            return city
+    except Exception:
+        pass
+    return ""
+
+
+DEFAULT_PLACE = _home_town()
 _GEO_CACHE = {}      # place -> geocode result; towns don't move
 
 
@@ -369,7 +410,12 @@ def get_weather(place: str = "") -> str:
     """
     _step("Checking the weather")
     import requests
-    where = (place or "").strip() or DEFAULT_PLACE
+    where = (place or "").strip() or _home_town()
+    if not where:
+        return ("NOTHING HAPPENED — I don't know where you are, and I am not "
+                "going to guess. Tell them: say the place, like \"what's the "
+                "weather in Boston\", or tell me where you live and I'll "
+                "remember it.")
     try:
         # Geocoding a town never changes, so cache it. The usual question is
         # about home, and a cached geocode turns this from two round trips into

@@ -120,6 +120,34 @@ for gone in ("db.py", "leads.py", "marketing.py", "pipeline.py", "mailwatch.py",
              "skills/gym_streak.py", "profile.py", "install_autostart.sh"):
     check(f"the owner's own module is not shipped: {gone}", not os.path.exists(gone))
 
+# ---- 1a2. no real-world PLACE is hardcoded as a default ----
+# The deny list holds NAMES, so it sailed straight past
+#   DEFAULT_PLACE = os.getenv("NEO_HOME_TOWN", "Warren, New Jersey")
+# which published the first owner's home town in a public repository AND
+# answered every stranger's "what's the weather" with somebody else's town.
+# Anything that defaults to a place must derive it from the machine or ask.
+_PLACE_HINTS = ("new jersey", "new york", ", nj", ", ny", ", ca", ", tx",
+                "california", "texas", "london", "boston", "chicago")
+_place_leaks = []
+for f in SHIPPED:
+    if not f.endswith(".py"):
+        continue
+    for i, line in enumerate(open(f, errors="ignore").read().splitlines(), 1):
+        low = line.lower()
+        if "getenv(" not in low and "default" not in low:
+            continue
+        if any(h in low for h in _PLACE_HINTS):
+            _place_leaks.append(f"{f}:{i}")
+check("no real place is hardcoded as a default"
+      + (f"  <-- {_place_leaks}" if _place_leaks else ""), not _place_leaks)
+
+import agent as _agent_mod
+check("weather: the home town is derived, not written into the source",
+      callable(getattr(_agent_mod, "_home_town", None))
+      and "Warren" not in open("agent.py", errors="ignore").read())
+check("weather: with nowhere known it ASKS instead of inventing a place",
+      "I don't know where you are" in open("agent.py", errors="ignore").read())
+
 # ---- 1b. every module the shipped code imports actually ships ----
 # access.py, heavy.py, screencal.py and workflows.py were written, imported by
 # agent/agenda/connectors/remind/contacts/claude_bridge, and then simply not
