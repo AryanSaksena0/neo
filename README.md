@@ -34,8 +34,22 @@ than pretending.
 Almost everything good, though, needs a key: conversation, your screen, the
 pointer, the highlighter, reminders, the calendar, mail, markets, explanations.
 That's one free Gemini key. Say **"add my key"** — Neo opens the page, you press
-*Create API key*, and it takes it from your clipboard and restarts itself. About
-a minute, no terminal, and you never have to see the key. Nothing bills, ever.
+*Create API key*, and copying it is the whole step. Neo takes it from your
+clipboard and becomes the full version on the spot, no restart. You never have
+to see the key, and nothing bills, ever.
+
+### Make two or three keys, not one
+
+This is the difference between Neo being good and Neo being annoying, and it
+takes thirty extra seconds.
+
+Google's free allowance is counted **per project, not per account**. A second
+project on the same Google account is a second full day's allowance. Neo stacks
+every key you give it and moves to the next one the moment today's runs dry, so
+three keys is three times the day. Copy a second and third key at the key screen
+— or say "add my key" again any time — and Neo files each into its own slot.
+
+With one key you will hit a wall mid-afternoon. With three you mostly won't.
 
 Everything else is optional and documented in [.env.example](.env.example) — a
 second free key for a bigger daily allowance, other providers as fallbacks, and

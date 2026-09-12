@@ -30,8 +30,15 @@ documents, presentations. Ask for one of those without a key and Neo says so in
 one sentence and offers the route. It does not pretend.
 
 **Say "add my key"** and Neo opens Google's key page, you press *Create API
-key*, and it takes the key from your clipboard and restarts itself into the
-full version. You never have to see the key, open a terminal, or edit a file.
+key*, and it takes the key from your clipboard and becomes the full version on
+the spot — no restart, no waiting.
+
+**Add more than one.** The free allowance is per Google *project*, not per
+account, so a second project is a second full day. Neo files each key into its
+own slot and moves to the next when today's runs out. One key hits a wall mid
+afternoon; three mostly don't.
+
+You never have to see a key, open a terminal, or edit a file.
 
 ---
 

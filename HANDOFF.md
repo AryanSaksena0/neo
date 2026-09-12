@@ -293,3 +293,72 @@ What actually needs doing:
    Everything above is untested against a real first run.
 4. Still untested anywhere: Homebrew installing from scratch, and the four TCC
    grants against a fresh `Neo.app` identity.
+
+## Overnight run — 12 Sept 2026, 02:00–03:00
+
+Owner's brief: fix the onboarding frustrations, then make Neo something you can
+send a GitHub link to. Priorities he named: (1) knowledge — one wrong answer and
+the user never comes back, (2) latency and voice, not robotic.
+
+### Fixed
+
+- **A key saved mid-session did nothing.** `KEYLESS` is decided once, at import,
+  so a key added during onboarding left the process on `LocalBrain` and Kokoro —
+  while the onboarding said *"Got it. That's my real voice from here on."* Neo
+  promising a thing and not doing it, in the first two minutes of every install.
+  `Neo.key_arrived()` now rebuilds the brain, the cloud voice, the filler cache,
+  the ears and every binding in place. No restart. The spoken "add my key" flow
+  uses it too and only falls back to the relaunch if it fails.
+- **You could only ever have one key.** `save_key` overwrote `GEMINI_API_KEY`
+  every time, while `providers.py` had rotation across `_2.._8` sitting unused.
+  It now fills the next free slot, and re-adding a key is a no-op. The key scene
+  says plainly that the allowance is per *project*, keeps watching after the
+  first, and counts them back. **Rotation verified**: a dry key is retired, a
+  burst 429 is not mistaken for a daily one, and the next key takes over.
+- **The welcome screen.** Three CSS mock-ups of windows that read as grey
+  placeholder boxes, under a tagline that described every assistant ever
+  shipped. Replaced with the one thing that is actually true and actually
+  different: hold the key, say it, let go. The JS that filled them is now
+  guarded, because one missing element used to take the whole script with it.
+- **The narration dragged** because it was literally instructed to:
+  `STYLE = "Say this calmly and unhurried: "`. Now warm and normally paced.
+  Copy rewritten shorter across every scene; "Give me three minutes" is gone.
+- **Two voices in one install.** `live.py`, `neo.py` and `onboard_record.py`
+  each decided the voice separately. One constant in `live.py` now; the
+  recorder derives from it and re-records on a **voice** change, not just a text
+  change. Default moved off Charon ("Informative", the flat one) to Sulafat.
+- **The connect scene presented a macOS prompt and a browser sign-in
+  identically.** Each row now says whether it is one tap or a sign-in, and the
+  one-tap ones lead. Mail is marked "needs setup" because it genuinely is.
+
+### Blocked, and this is the one thing not finished
+
+**Four of the eight narration lines are unrecorded**, so those scenes are
+silent. Gemini's TTS free tier is 10 requests/day/project and both keys are
+spent. Silence is the deliberate degradation (a stand-in voice would be a
+different person); it is still not polish. One command when the quota resets:
+
+    cd ~/Desktop/neo && .venv/bin/python onboard_record.py
+
+`test_onboard.py` now fails on stale text, fails on mixed voices, and skips
+loudly on unrecorded scenes, so this cannot ship unnoticed again.
+
+### Not done, and why
+
+- **A downloadable, signed `.dmg`** needs an Apple Developer account ($99/yr).
+  The install is still `curl | bash`, which is the single biggest remaining
+  conversion loss for non-technical people.
+- **The onboarding was never seen running.** Every change above is verified by
+  structure, not by eye: HTML tag balance, every scene in `ORDER` present, every
+  `getElementById` target existing, and the page's JavaScript parsing under
+  `node --check`. It needs a real run.
+- **Latency is unchanged** at ~4.2 s median to first sound.
+- **Knowledge is still capped** by the free Gemini tier. The unexplored lever is
+  `CEREBRAS_API_KEY`: `providers.py` already has `llama-3.3-70b` and
+  `gpt-oss-120b` wired and marked free, and Cerebras exists to serve big models
+  fast. Free signup, no code needed. Measured for comparison: OpenRouter's free
+  `nemotron-3-super-120b` answers in **0.66 s to first token** (vs 4.2 s today),
+  but its ~50/day account-wide pool makes it a fallback, not a brain.
+
+Owner's `.env` has three `GEMINI_API_KEY` lines but **one is a placeholder** —
+two real keys, not three.
