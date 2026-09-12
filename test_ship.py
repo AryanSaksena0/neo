@@ -105,7 +105,7 @@ for f in SHIPPED:
     check(f"no personal trace in {f}" + (f"  <-- {', '.join(hits)}" if hits else ""), not hits)
 
 # ...and prove that exception cannot be used as a hole to smuggle things through.
-_probe = _REPO_URL.sub(" <repo-url> ", "see https://github.com/AryanSaskena0/neo — ask aryan")
+_probe = _REPO_URL.sub(" <repo-url> ", "see https://github.com/AryanSaksena0/neo — ask aryan")
 check("the repo-url exception does not excuse a name in prose", "aryan" in _probe)
 _probe2 = _COPYRIGHT.sub(" <copyright-line> ", "Copyright (C) 2026 someone\nwritten by aryan")
 check("the copyright exception covers only that one line",

@@ -16,7 +16,7 @@ It runs on macOS, on Apple Silicon, and costs nothing to operate.
 One line, in Terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AryanSaskena0/neo/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/AryanSaksena0/neo/main/install.sh | bash
 ```
 
 That installs Homebrew if you don't have it, gets Neo into `~/neo`, sets up

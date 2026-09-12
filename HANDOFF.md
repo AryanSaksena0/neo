@@ -54,7 +54,7 @@ works or fails honestly, with a fallback.
 - `onboard.py` first run: welcome → permissions → key → **about you** →
   first words → tour. Narration in `onboard_audio/*.wav` (Charon), recorded
   by `onboard_record.py` (Gemini TTS free tier is **10 requests/day**).
-- `install.sh` one-liner points at github.com/AryanSaskena0/neo.
+- `install.sh` one-liner points at github.com/AryanSaksena0/neo.
 
 ## Connectors (11 Sept, evening)
 
@@ -271,7 +271,7 @@ onboarding via the CLI login (Claude Code or Codex), not via an API key.
 Smaller than it looks. What already exists:
 
 - `install.sh` is the one-paste command, already pointing at
-  github.com/AryanSaskena0/neo. It only needs the repo to exist.
+  github.com/AryanSaksena0/neo. It only needs the repo to exist.
 - `connectors.py` already has `claude` and `chatgpt` rows with real
   `connect()` / `test()`, and the onboarding Connect scene renders whatever
   `connectors.status()` returns — so both already appear. Verify on screen.

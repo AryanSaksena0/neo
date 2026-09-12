@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — Neo, in one line.
 #
-#   curl -fsSL https://raw.githubusercontent.com/AryanSaskena0/neo/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/AryanSaksena0/neo/main/install.sh | bash
 #
 # What it does, in order, saying each step once and nothing else:
 #   1. checks this is a Mac with Apple Silicon
@@ -14,7 +14,7 @@
 # Re-runnable. Nothing here asks a question it can answer itself.
 set -euo pipefail
 
-REPO="${NEO_REPO:-https://github.com/AryanSaskena0/neo.git}"
+REPO="${NEO_REPO:-https://github.com/AryanSaksena0/neo.git}"
 DIR="${NEO_DIR:-$HOME/neo}"
 
 say()  { printf '\033[1m%s\033[0m\n' "$*"; }
@@ -66,7 +66,16 @@ elif [ -d "$DIR" ] && [ -n "$(ls -A "$DIR" 2>/dev/null)" ]; then
   rm -rf "$tmp"
 else
   say "Getting Neo into $DIR"
-  git clone --depth 1 "$REPO" "$DIR"
+  git clone --depth 1 "$REPO" "$DIR" || die "\
+Couldn't reach $REPO
+
+That address didn't answer. Usually one of:
+  - no network, or GitHub is down
+  - the repository is private, or has been renamed or moved
+  - a typo in the URL
+
+Nothing has been changed on this Mac. To install from somewhere else:
+  NEO_REPO=https://github.com/<owner>/neo.git bash install.sh"
 fi
 cd "$DIR"
 

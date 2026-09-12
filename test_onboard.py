@@ -156,6 +156,10 @@ _mk = open("make_app.sh").read()
 check("stop: takes Neo's own Chrome with it, matched on the profile path",
       "stop_neo_chrome" in _mk and "--user-data-dir=$prof" in _mk)
 
+check("install: an unreachable repo says why, and changes nothing",
+      "Couldn't reach" in _inst and "Nothing has been changed on this Mac" in _inst
+      and "NEO_REPO=" in _inst)
+
 check("install: ends by opening Neo, which does the rest",
       "make_app.sh" in _inst)
 
