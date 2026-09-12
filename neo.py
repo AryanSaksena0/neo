@@ -331,8 +331,9 @@ DECK_TURN_MAX_S = float(os.getenv("NEO_DECK_TURN_MAX", "75"))
 KEYLESS = (not API_KEY) or API_KEY == "paste_your_free_key_here"
 if KEYLESS:
     print("[neo] No Gemini API key — starting in LOCAL MODE.")
-    print("[neo] Voice, timers, reminders, calendar, markets and the Mac all "
-          "work. Thinking needs a free key: say \"add my key\".")
+    print("[neo] I can hear you and talk back, tell you the time and the "
+          "weather, and open your apps. Thinking needs a free key: "
+          "say \"add my key\".")
 
 
 def log(msg):
@@ -1011,11 +1012,18 @@ class LocalBrain:
 
     # -- the one that matters -------------------------------------------------
     def respond(self, user_text, job_note="", typed=False):
-        return ("I can hear you, and I can set timers, reminders and calendar "
-                "events, read your screen's text, check the markets and the "
-                "weather, and drive your Mac. What I can't do yet is think "
-                "about that one, which needs a free key. Say \"add my key\" "
-                "and I'll walk you through it. It takes about a minute.")
+        # EXACTLY what is routed without a model, and nothing more. The first
+        # version of this sentence listed reminders, the calendar and the
+        # markets — none of which work keyless, because remind.parse and
+        # agenda.parse both take a client and every tool is reached through the
+        # model's tool-calling. Neo claiming a capability it does not have, in
+        # the one message whose entire job is being honest about what it cannot
+        # do, is the worst possible place to break rule two.
+        return ("I can hear you and talk back, tell you the time and the "
+                "weather, open your apps and websites, and remember things. "
+                "Thinking about that one needs a free key. Say "
+                "\"add my key\" and I'll walk you through it, it takes "
+                "about a minute.")
 
     # -- things the chain calls, answered without a model ---------------------
     def forget(self):

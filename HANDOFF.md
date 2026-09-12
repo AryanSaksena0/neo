@@ -232,3 +232,64 @@ works.
 > recording the 12 Sept personal-data and test fixes, were written to this file
 > and later overwritten — Neo rewrites files in this folder while it runs. If
 > you are editing HANDOFF.md, re-read it immediately before writing.
+
+## Fresh-user reset — 12 Sept 2026, 01:40
+
+The machine was returned to "never installed" so the owner can walk the
+onboarding as a new user would.
+
+**Removed:** the LaunchAgent (`app.neo.assistant`), `~/Applications/Neo.app`,
+every running process, and all personal runtime state — `.env`,
+`memory.json`, `profile.json`, `convo.json`, `.neo.onboarded`,
+`stealth.json`, `voice.json`, `sentinel.json`, `usage.json`,
+`models.json`, the logs, `neo_metrics.jsonl`, `.browser/`,
+`.voicecache/`, `.imgcache/`, `claude_runs/`, `content_out/`,
+`skills/*_data.json`.
+
+**Backed up first, in full, to:**
+
+    /Users/aryansaksena/neo-backup-20260912-013932
+
+That includes the 70 learned facts, the profile, both Gemini keys, and the
+signed-in browser profile. Restoring is a copy back into the repo. Kept in
+place: `CLAUDE.local.md` and `.personal-words` (notes and dev tooling, not
+runtime state).
+
+Code and git history untouched — working tree clean at `cf977b0e`.
+
+## Tomorrow: the one-paste install (owner's brief, 12 Sept)
+
+Goal, in the owner's words: *"There should be a GitHub, and you paste 1 thing
+into terminal, and you can get it, and once everything downloads, it goes to
+the onboarding, and then the key input — either they create a key, or input
+their own — and then the Claude Code / Codex account they want backing."*
+
+**This answers an open question that was previously flagged as
+"unspecified, ask before building":** the heavy engine is connected at
+onboarding via the CLI login (Claude Code or Codex), not via an API key.
+
+Smaller than it looks. What already exists:
+
+- `install.sh` is the one-paste command, already pointing at
+  github.com/aryansaksena2010-web/neo. It only needs the repo to exist.
+- `connectors.py` already has `claude` and `chatgpt` rows with real
+  `connect()` / `test()`, and the onboarding Connect scene renders whatever
+  `connectors.status()` returns — so both already appear. Verify on screen.
+- Scene order is already welcome -> perms -> key -> connect -> about -> first
+  -> tour, which is the order asked for.
+- The key scene already watches the clipboard continuously, so pasting your
+  own key ALREADY works. It is simply not offered as a choice.
+
+What actually needs doing:
+
+1. **Key scene: make the two paths explicit.** One button creates a key
+   (opens Google's page, Neo takes it from the clipboard); a second says
+   "I already have one" and makes the paste target obvious. The plumbing is
+   there; this is copy and a button.
+2. **Push the repo to GitHub.** NOT DONE — publishing is the owner's call,
+   and public-vs-private was never agreed. Ask first. AGPL was chosen with a
+   public release in mind, so public is the likely intent, but do not assume.
+3. **Walk the whole thing on this machine** and fix what the first run shows.
+   Everything above is untested against a real first run.
+4. Still untested anywhere: Homebrew installing from scratch, and the four TCC
+   grants against a fresh `Neo.app` identity.
