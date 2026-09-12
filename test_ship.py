@@ -91,15 +91,25 @@ check("the deny list itself is not committed",
 # and nowhere else. Written as a strip-then-scan rather than a skipped file, so
 # a name dropped into install.sh's prose still fails.
 _REPO_URL = re.compile(r"https://(?:raw\.)?github(?:usercontent)?\.com/[^\s\"'`)]*", re.I)
+# The second narrow exception: a copyright line. AGPL-3.0 was chosen precisely
+# so the sole author keeps the right to relicense commercially, and that right
+# depends on the copyright holder being NAMED. So "Copyright (C) <year> <who>"
+# may carry the owner's handle; nothing else may.
+_COPYRIGHT = re.compile(r"^\s*Copyright \(C\) \d{4}.*$", re.I | re.M)
 
 for f in SHIPPED:
-    src = _REPO_URL.sub(" <repo-url> ", open(f, errors="ignore").read().lower())
+    src = open(f, errors="ignore").read()
+    src = _COPYRIGHT.sub(" <copyright-line> ", src)
+    src = _REPO_URL.sub(" <repo-url> ", src).lower()
     hits = sorted({w for w in PERSONAL if re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])", src)})
     check(f"no personal trace in {f}" + (f"  <-- {', '.join(hits)}" if hits else ""), not hits)
 
 # ...and prove that exception cannot be used as a hole to smuggle things through.
 _probe = _REPO_URL.sub(" <repo-url> ", "see https://github.com/aryansaksena2010-web/neo — ask aryan")
 check("the repo-url exception does not excuse a name in prose", "aryan" in _probe)
+_probe2 = _COPYRIGHT.sub(" <copyright-line> ", "Copyright (C) 2026 someone\nwritten by aryan")
+check("the copyright exception covers only that one line",
+      "aryan" in _probe2 and "someone" not in _probe2)
 
 # The guard on the guard: if this file ever stops lowercasing, say so loudly.
 check("the personal-trace scan is case-insensitive",
@@ -191,6 +201,50 @@ for _doc, _name in ((_rm, "README"), (_ft, "FEATURES")):
                   if w in _doc.split("everything else")[0].split("what needs a key")[0]]
     check(f"no key: {_name} does not claim model-only tools work offline",
           not _overclaim)
+
+# What Neo SAYS it can do in local mode has to match what it actually routes.
+# Found by running a genuinely fresh install: the docs had been corrected but
+# the boot banner and LocalBrain.respond still promised "timers, reminders,
+# calendar, markets". None of those work without a model. Neo claiming a
+# capability it lacks, in the one message whose whole job is being honest about
+# what it lacks, is rule two broken in the worst possible place.
+_CANNOT_OFFLINE = ("timer", "reminder", "calendar", "market", "stock",
+                   "screen's text", "mail", "inbox")
+def _localbrain_says():
+    """Every string LocalBrain actually SAYS to the user — the return values of
+    its methods, via ast. Not comments and not docstrings: both of those name
+    the wrongly-claimed capabilities on purpose, to explain why they went."""
+    import ast as _a
+    tree = _a.parse(_neo_src)
+    out = []
+    for node in _a.walk(tree):
+        if isinstance(node, _a.ClassDef) and node.name == "LocalBrain":
+            for r in _a.walk(node):
+                if isinstance(r, _a.Return) and r.value is not None:
+                    for lit in _a.walk(r.value):
+                        if isinstance(lit, _a.Constant) and isinstance(lit.value, str):
+                            out.append(lit.value)
+    return " ".join(out)
+
+def _banner_says():
+    """The print() calls guarded by `if KEYLESS:` at module level."""
+    import ast as _a
+    tree = _a.parse(_neo_src)
+    out = []
+    for node in _a.walk(tree):
+        if isinstance(node, _a.If) and isinstance(node.test, _a.Name) and node.test.id == "KEYLESS":
+            for c in _a.walk(node):
+                if isinstance(c, _a.Constant) and isinstance(c.value, str):
+                    out.append(c.value)
+    return " ".join(out)
+
+for _blob, _what in ((_localbrain_says(), "LocalBrain's replies"),
+                     (_banner_says(), "the boot banner")):
+    _bad = sorted({w for w in _CANNOT_OFFLINE if w in _blob.lower()})
+    check(f"no key: {_what} claim nothing that needs a model"
+          + (f"  <-- {_bad}" if _bad else ""), not _bad)
+check("no key: the claim-scan is looking at real output",
+      "hear you and talk back" in _localbrain_says())
 
 check("no key: the two things the docs DO promise are really routed offline",
       _cmd.parse_offline_fact("what time is it") == "time"
