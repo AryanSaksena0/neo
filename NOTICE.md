@@ -40,3 +40,25 @@ The licence covers Neo's code. It says nothing about the AI providers Neo talks
 to — Google, Anthropic and any others whose keys you supply have their own
 terms, which are between you and them. See [TERMS.md](TERMS.md) and
 [PRIVACY.md](PRIVACY.md).
+
+## Copyright
+
+    Neo — a voice assistant for macOS.
+    Copyright (C) 2026 aryansaksena2010-web
+
+    This program is free software: you can redistribute it and/or modify it
+    under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or (at your
+    option) any later version.
+
+    This program is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License
+    for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+The copyright notice lives here rather than on top of `LICENSE` so that GitHub
+and other tools can recognise the licence file as verbatim AGPL-3.0. The
+licence applies either way; this is purely about machine detection.
