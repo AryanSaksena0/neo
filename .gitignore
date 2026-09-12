@@ -1,0 +1,74 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+neo.log
+neo_metrics.jsonl
+claude_runs/
+memory.backup.json
+content_out/
+convo.json
+skills/todos_data.json
+
+# resolved model picks — machine-local, re-probed daily
+models.json
+
+# single-instance lock
+.neo.lock
+_to_delete/
+
+# synthesised filler lines — machine-local audio, made once and reused
+.voicecache/
+.imgcache/
+memory.backup-*.json
+artifacts.json
+filed_bugs.json
+quiet.json
+
+# self-restart bookkeeping — machine-local
+.neo.reload
+.neo.python
+
+# runtime state — rewritten constantly, never worth a commit
+sentinel.json
+usage.json
+voice.json
+
+# first-run marker — per machine
+.neo.onboarded
+
+# the second brain — personal, machine-local
+profile.json
+
+# ---- never shipped: this machine's person, data and sessions ----
+.browser/
+memory.json
+memory.backup.json
+person.json
+profile.json
+stealth.json
+voice.json
+quiet.json
+leads.json
+marketing.json
+convo.json.bak
+neo.out
+neo.err
+.neo.onboarded
+skills/*_data.json
+.claude/
+demos/
+_personal/
+# the owner's own notes. CLAUDE.local.md is the private half of the project
+# context (Claude Code reads CLAUDE.md AND CLAUDE.local.md); the shared half
+# is CLAUDE.md, which IS tracked, because a fresh install needs it — every
+# Claude Code job Neo starts is told to read it.
+CLAUDE.local.md
+PROJECT_NOTES.md
+CONVOREPORT.md
+FINDINGS.md
+TESTREPORT.md
+2026_ppr_draft_strategy.md
+
+# the personal-words deny list: real names, never committed
+.personal-words

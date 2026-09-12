@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clock</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    cursor: none;
+  }
+  #wrap {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    user-select: none;
+  }
+  #time {
+    color: #f5f5f5;
+    font-size: 22vw;
+    font-weight: 200;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  #ampm {
+    font-size: 0.28em;
+    font-weight: 300;
+    color: #9a9a9a;
+    margin-left: 0.25em;
+    vertical-align: 0.9em;
+  }
+  #date {
+    color: #7f7f7f;
+    font-size: 3.4vw;
+    font-weight: 300;
+    margin-top: 3vh;
+    letter-spacing: 0.01em;
+  }
+  #hint {
+    position: fixed;
+    bottom: 3vh;
+    color: #3a3a3a;
+    font-size: 1.4vw;
+    font-weight: 300;
+    transition: opacity 1s;
+  }
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="time">--:--<span id="ampm"></span></div>
+    <div id="date">&nbsp;</div>
+  </div>
+  <div id="hint">click for full screen &nbsp;·&nbsp; esc to exit</div>
+
+  <script>
+    const timeEl = document.getElementById('time');
+    const ampmEl = document.getElementById('ampm');
+    const dateEl = document.getElementById('date');
+    const hintEl = document.getElementById('hint');
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['January','February','March','April','May','June','July',
+                    'August','September','October','November','December'];
+
+    function tick() {
+      const now = new Date();
+      let h = now.getHours();
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12; if (h === 0) h = 12;
+      timeEl.firstChild.nodeValue = h + ':' + m;
+      ampmEl.textContent = ampm;
+      dateEl.textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    // click anywhere -> true full screen
+    document.body.addEventListener('click', () => {
+      const el = document.documentElement;
+      if (!document.fullscreenElement && el.requestFullscreen) {
+        el.requestFullscreen().catch(() => {});
+      }
+    });
+    // fade the hint away after a few seconds
+    setTimeout(() => { hintEl.style.opacity = '0'; }, 4000);
+  </script>
+</body>
+</html>
