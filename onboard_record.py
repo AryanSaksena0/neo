@@ -26,13 +26,23 @@ from google import genai
 from google.genai import types
 
 MODEL = os.getenv("NEO_GEMINI_TTS", "gemini-2.5-flash-preview-tts")
-VOICE = os.getenv("NEO_GEMINI_VOICE", "Charon")
+# Derived, never hardcoded: the narration has to be the same person as the live
+# session. This file used to default to "Charon" independently of live.py, so
+# the two could drift apart without anything noticing.
+import live as _live
+VOICE = os.getenv("NEO_GEMINI_VOICE") or os.getenv("NEO_LIVE_VOICE") or _live.VOICE
 
 
 # A style instruction the model follows but doesn't speak. Without one it
 # sometimes stops after the first sentence — "A few things to try." and
 # nothing else came back, twice, before this was added.
-STYLE = "Say this calmly and unhurried: "
+# This instruction is the single biggest thing about how the narration FEELS,
+# and the first version got it wrong: "calmly and unhurried" produced a voice
+# that drags, which on a setup screen reads as slow and strange rather than
+# calm. Warm and normally-paced is what a person helping you set something up
+# actually sounds like. The style is followed, never spoken.
+STYLE = ("Say this warmly and naturally, at a normal conversational pace, "
+         "like a friend helping you set something up. Do not drag it out: ")
 
 
 def record(text, keys):
@@ -71,13 +81,20 @@ def main():
     for scene, text in onboard.NARRATION.items():
         wav = os.path.join(onboard.AUDIO_DIR, f"{scene}.wav")
         txt = os.path.join(onboard.AUDIO_DIR, f"{scene}.txt")
-        same = os.path.exists(wav) and os.path.exists(txt) and open(txt).read() == text
+        # The sidecar records the VOICE as well as the text, because a voice
+        # change has to re-record just as surely as a copy change does. Without
+        # this, switching the voice left every unchanged line in the old one —
+        # which is how the onboarding ended up half Sulafat and half Charon,
+        # two different people inside one two-minute flow.
+        want = f"{VOICE}\n{text}"
+        have = open(txt).read() if os.path.exists(txt) else None
+        same = os.path.exists(wav) and have == want
         if same and not everything:
-            print(f"  {scene:<8} unchanged")
+            print(f"  {scene:<8} unchanged ({VOICE})")
             continue
         a = record(text, keys)
         save_wav(wav, a)
-        open(txt, "w").write(text)
+        open(txt, "w").write(want)
         print(f"  {scene:<8} {a.size / 24000:.1f}s  peak {float(np.abs(a).max()):.2f}")
 
 

@@ -1718,7 +1718,7 @@ def connect_service(service: str) -> str:
              "email": "mail", "inbox": "mail", "gmail": "google", "chrome": "google",
              "google calendar": "google", "drive": "google", "browser": "google"}
     key = alias.get(key, key)
-    if key not in [k for k, _, _, _ in connectors.CONNECTORS]:
+    if key not in [c[0] for c in connectors.CONNECTORS]:
         return _failed(f"I don't have a connector called {service!r}. I have: calendar, google, claude, chatgpt, reminders, contacts, mail.")
     first = connectors.connect(key, log=_log_line)
     if key == "google" and "sign in" in first.lower():

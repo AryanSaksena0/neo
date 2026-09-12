@@ -92,15 +92,17 @@ TOUR = [
 # key yet, so the live voice isn't available, and a stand-in voice would be
 # the first thing anyone heard.
 NARRATION = {
-    "welcome": "Hi. I'm Neo. Give me three minutes.",
-    "perms":   "First, macOS has to let me in. Each button opens the right pane. "
-               "I'll mark them off as you grant them.",
-    "key":     "One key gives me my real voice. Open the page, create a key, "
-               "copy it. I'll take it from there.",
-    "connect": "Now the things I work with. Press connect, then approve the prompt. I'll read something back each time so you know it's real.",
+    # Short. Every one of these is heard while the person is reading the screen,
+    # so anything the screen already says is noise. The old set narrated the
+    # interface back at them and opened with "Give me three minutes", which is
+    # a toll, not a welcome.
+    "welcome": "Hey. I'm Neo. Let me walk you through setting me up, it takes about two minutes.",
+    "perms":   "First, macOS has to let me in. Tap each one and say yes.",
+    "key":     "One free key and I can think. Press the button, then just copy it. I'll do the rest.",
+    "connect": "Now the things I work with. Press connect, then approve.",
     "about":   "A few things about you, so I'm yours from the start.",
-    "first":   "Hold the fn key. Say anything. Let go.",
-    "tour":    "A few things to try.",
+    "first":   "Go on then. Hold the fn key, say anything, and let go.",
+    "tour":    "A few things worth trying.",
     "done":    "That's it. Hold the key whenever you need me.",
 }
 
@@ -184,32 +186,81 @@ def key_already_set(env_path=ENV_PATH):
     return False
 
 
-def save_key(key, env_path=ENV_PATH):
-    """Write GEMINI_API_KEY into .env, replacing any placeholder. Returns True
-    on a real write. Pure given a path, so the tests use a temp file."""
-    key = str(key or "").strip()
-    if not KEY_RX.fullmatch(key):
-        return False
-    lines = []
+KEY_SLOTS = ["GEMINI_API_KEY"] + [f"GEMINI_API_KEY_{i}" for i in range(2, 9)]
+
+
+def existing_keys(env_path=ENV_PATH):
+    """Every Gemini key already in .env, in slot order. Pure given a path."""
+    out = []
     try:
         with open(env_path) as f:
             lines = f.read().splitlines()
     except OSError:
-        pass
-    out, done = [], False
+        return out
+    for slot in KEY_SLOTS:
+        for line in lines:
+            if line.startswith(slot + "="):
+                v = line.split("=", 1)[1].strip()
+                if len(v) >= 12 and "paste" not in v.lower():
+                    out.append(v)
+                break
+    return out
+
+
+def save_key(key, env_path=ENV_PATH):
+    """Add a Gemini key, into the next FREE slot. Returns True on a real write.
+
+    This used to overwrite GEMINI_API_KEY every time, so a second key replaced
+    the first and the person was capped at one project's allowance forever —
+    while providers.py had rotation across GEMINI_API_KEY_2..8 sitting there
+    unused. The free tier is per PROJECT, so a second project on the same
+    Google account is a second full day's allowance, and hitting the wall at
+    midday is the single most common way this product disappoints someone.
+
+    Re-adding a key already present is a no-op that still returns True, so
+    pasting the same thing twice never silently eats a slot.
+    """
+    key = str(key or "").strip()
+    if not KEY_RX.fullmatch(key):
+        return False
+    try:
+        with open(env_path) as f:
+            lines = f.read().splitlines()
+    except OSError:
+        lines = []
+
+    have = existing_keys(env_path)
+    if key in have:
+        os.environ.setdefault("GEMINI_API_KEY", have[0])
+        return True
+
+    used = set()
+    for i, line in enumerate(lines):
+        for slot in KEY_SLOTS:
+            if line.startswith(slot + "="):
+                v = line.split("=", 1)[1].strip()
+                if len(v) >= 12 and "paste" not in v.lower():
+                    used.add(slot)
+                break
+    slot = next((s for s in KEY_SLOTS if s not in used), None)
+    if slot is None:
+        return False                      # eight keys is already absurd
+
+    out, placed = [], False
     for line in lines:
-        if line.startswith("GEMINI_API_KEY="):
-            if not done:
-                out.append(f"GEMINI_API_KEY={key}")
-                done = True
+        # a placeholder in the target slot gets replaced rather than duplicated
+        if line.startswith(slot + "=") and not placed:
+            out.append(f"{slot}={key}")
+            placed = True
             continue
         out.append(line)
-    if not done:
-        out.append(f"GEMINI_API_KEY={key}")
+    if not placed:
+        out.append(f"{slot}={key}")
     try:
         with open(env_path, "w") as f:
             f.write("\n".join(out) + "\n")
-        os.environ["GEMINI_API_KEY"] = key
+        os.environ[slot] = key
+        os.environ.setdefault("GEMINI_API_KEY", key)
         return True
     except OSError:
         return False
@@ -272,6 +323,29 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   .foot .dot{margin:0 8px;opacity:.5}
   .hint{font-size:13px;color:var(--fg3);margin-top:18px;line-height:1.6}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px}
+
+  /* The hidden attribute has to actually hide, even when the class sets a
+     display. Without this the "I already have one" note is visible from the
+     start and the button does nothing visible. */
+  /* what pressing Connect will actually do */
+  .how{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+       margin-left:9px;padding:2px 7px;border-radius:999px;vertical-align:1.5px;
+       border:1px solid rgba(255,255,255,.14);color:var(--fg3)}
+  .how.h-one{color:#7ee2a8;border-color:rgba(126,226,168,.34)}
+  .how.h-sign{color:#8fb8ff;border-color:rgba(143,184,255,.34)}
+  .sub.quota{font-size:15px;color:var(--fg3);margin-top:-2px;max-width:48ch}
+  .sub.quota b{color:var(--fg2)}
+  [hidden]{display:none !important}
+  /* ---- the welcome hero. Type, not fake screenshots. The old welcome put
+     three CSS mock-ups of windows on the first screen; they read as grey
+     placeholder boxes, which is the worst possible first impression for a
+     product whose whole claim is that it does real things. ---- */
+  .hero{font-size:56px;line-height:1.06;letter-spacing:-.025em;font-weight:600;
+        margin:18px 0 14px;max-width:15ch}
+  .hero .key.big{font-size:.62em;padding:.12em .36em;vertical-align:.10em;
+        border-radius:10px;margin:0 .04em}
+  .sub.wide{max-width:46ch;font-size:17px;line-height:1.5}
+  @media (max-height:720px){ .hero{font-size:44px} }
 
   /* ================= the showcase: little living windows ================= */
   .tiles{display:grid;gap:14px;margin:0 0 30px}
@@ -431,35 +505,46 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 
     <section class="scene" data-s="welcome">
       <div class="mark arrive">Neo</div>
-      <p class="sub arrive">The all-in-one assistant for your Mac.</p>
-      <div class="tiles three arrive" id="showcase"></div>
-      <div class="row arrive"><button class="primary" onclick="go('perms')">Continue</button></div>
-      <div class="foot arrive">Hold <span class="key">fn</span> to talk<span class="dot">·</span>Mic only while it's held<span class="dot">·</span>Nothing bills<br>
+      <h1 class="hero arrive">Hold <span class="key big">fn</span>.<br>Say it. Let go.</h1>
+      <p class="sub wide arrive">That's the whole thing. No window to open, no wake
+        word, nothing to click. The microphone is open only while the key is down.</p>
+      <div class="row arrive"><button class="primary" onclick="go('perms')">Set me up</button></div>
+      <div class="foot arrive">Two minutes<span class="dot">·</span>Nothing bills<span class="dot">·</span>Nothing leaves your Mac but the question<br>
         <a href="#" onclick="send({action:'open_doc',doc:'TERMS.md'});return false">Terms</a><span class="dot">·</span><a href="#" onclick="send({action:'open_doc',doc:'PRIVACY.md'});return false">Privacy</a></div>
     </section>
 
     <section class="scene" data-s="perms">
-      <h1 class="arrive">Let macOS let Neo in.</h1>
-      <p class="sub arrive">Each button opens the exact pane. Tick <b>Neo</b>, then come back.</p>
+      <h1 class="arrive">Let macOS let me in.</h1>
+      <p class="sub arrive">Tap each one and say yes. I tick them off as they land.</p>
       <div class="perms card arrive" id="perms"></div>
       <div class="row arrive"><button class="primary" id="permsNext" disabled onclick="go('key')">Continue</button></div>
       <div class="hint arrive" id="permsHint"></div>
     </section>
 
     <section class="scene" data-s="key">
-      <h1 class="arrive">One button.<br>Then it thinks.</h1>
-      <p class="sub arrive">Neo already works without this. A free Gemini key is what lets it <b>think</b> — conversation, your screen, explanations. Press the button, sign in, press <b>Create API key</b>. Neo takes it from there; you never have to see it.</p>
-      <div class="keybox card arrive" id="keybox"><div class="dot"></div><div class="t" id="keyText">Waiting for a key on the clipboard…</div></div>
+      <h1 class="arrive">Copy a key.</h1>
+      <p class="sub wide arrive">That is the entire step. <b>Copy it and I take it from
+        your clipboard</b> — nothing to paste, nothing to save. Free, and it never bills.</p>
+      <p class="sub wide arrive quota"><b>Then do it again.</b> The free allowance is per
+        Google <i>project</i>, not per account, so a second project on the same
+        account is a second full day. Make two or three; I'll stack them and move
+        to the next one when today's runs out.</p>
+      <div class="keybox card arrive" id="keybox"><div class="dot"></div><div class="t" id="keyText">Waiting for you to copy a key…</div></div>
       <div class="row arrive">
-        <button class="primary" onclick="send({action:'open_key_page'})">Open the key page</button>
-        <button class="ghost" id="keyNext" onclick="go('connect')">Later — Neo still works</button>
+        <button class="primary" onclick="send({action:'open_key_page'})">Get me a key</button>
+        <button class="ghost" onclick="document.getElementById('haveKey').hidden=false">I already have one</button>
+        <button class="ghost" id="keyNext" onclick="go('connect')">Later</button>
       </div>
+      <div class="hint arrive" id="haveKey" hidden>Just copy it. I'm watching the
+        clipboard and I'll pick it up the moment you do.</div>
       <div class="hint arrive">Skip it and Neo still works — voice, timers, reminders, your calendar, the markets, your Mac. Only thinking waits. Say "add my key" any time.</div>
     </section>
 
     <section class="scene" data-s="connect">
       <h1 class="arrive">Connect what Neo works with.</h1>
-      <p class="sub arrive">Press <b>Connect</b>, then press <b>Allow</b> or <b>Approve</b> on the prompt that appears. Neo then reads something back so you know it's real. All optional; connect later by saying "connect calendar".</p>
+      <p class="sub wide arrive">Press <b>Connect</b>, then <b>Allow</b> on the prompt.
+        I read something back each time so you know it worked. All optional — say
+        "connect calendar" any time later.</p>
       <div class="perms card arrive" id="conns"></div>
       <div class="row arrive"><button class="primary" onclick="go('about')">Continue</button></div>
       <div class="hint arrive" id="connHint"></div>
@@ -548,10 +633,12 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     return '<div class="tile"><div class="vig v-'+c.v+'">'+VIG[c.v]+'</div>'+
            '<div class="say">'+esc(c.say)+'</div></div>';
   }
-  document.getElementById("showcase").innerHTML = CARDS.slice(0,3).map(tile).join("");
-  document.getElementById("tour").innerHTML = [CARDS[3],CARDS[4],CARDS[5],CARDS[6],CARDS[0],CARDS[2]].map(tile).join("");
-  document.getElementById("also").innerHTML =
-    'Also: ' + TOUR.slice(6).map(function(c){ return esc(c[0]); }).join('<span class="dot">·</span>');
+  // Guarded: the welcome scene no longer has a #showcase, and one missing
+  // element used to throw here and take every later line of this script with
+  // it — including the tour and the scene machinery.
+  function fill(id, html){ var el = document.getElementById(id); if (el) el.innerHTML = html; }
+  fill("tour", [CARDS[3],CARDS[4],CARDS[5],CARDS[6],CARDS[0],CARDS[2]].map(tile).join(""));
+  fill("also", 'Also: ' + TOUR.slice(6).map(function(c){ return esc(c[0]); }).join('<span class="dot">·</span>'));
 
   function arrive(scene){
     var els = scene.querySelectorAll(".arrive");
@@ -594,7 +681,11 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   function renderConns(){
     document.getElementById("conns").innerHTML = CONNS.map(function(c){
       var ok = connState[c.key] === true, note = connNote[c.key] || c.why;
-      return '<div class="perm'+(ok?' ok':'')+(c.rec?' rec':'')+'"><div class="dot"></div><div><div class="nm">'+esc(c.name)+'</div>'+
+      // Say what pressing Connect will actually DO. "one tap" means macOS
+      // raises its own prompt; "sign in" means a browser or terminal window.
+      // Presenting both identically is what made this screen feel broken.
+      var how = ok ? '' : (c.how ? '<span class="how h-'+c.how.split(" ")[0]+'">'+esc(c.how)+'</span>' : '');
+      return '<div class="perm'+(ok?' ok':'')+(c.rec?' rec':'')+'"><div class="dot"></div><div><div class="nm">'+esc(c.name)+how+'</div>'+
              '<div class="why">'+esc(note)+'</div></div>'+
              '<button class="mini" onclick="send({action:\'connect\',key:\''+c.key+'\'})">'+(ok?'Check':'Connect')+'</button></div>';
     }).join("");
@@ -603,7 +694,12 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     var box = document.getElementById("keybox"), t = document.getElementById("keyText");
     box.className = "keybox card arrive in" + (k.saved ? " ok" : (k.watching ? " wait" : ""));
     if (k.saved){
-      t.innerHTML = "Key saved. Neo has its real voice. <code>"+esc(k.tail)+"</code>";
+      var n = k.count || 1;
+      t.innerHTML = n > 1
+        ? "<b>"+n+" keys in.</b> That is "+n+"\u00d7 the daily allowance. "+
+          "Copy another any time \u2014 I'm still watching."
+        : "Key saved \u2014 that's my real voice. <code>"+esc(k.tail)+"</code><br>"+
+          "<b>Copy a second one</b> from a new Google project and you get double the day.";
       document.getElementById("keyNext").textContent = "Continue";
       document.getElementById("keyNext").className = "primary";
     } else if (k.already){
@@ -660,7 +756,11 @@ class Onboarding:
     """The window. Main thread only, like every other window here."""
 
     def __init__(self, say=None, log=print, on_done=None, env_path=None,
-                 mark=True):
+                 mark=True, app=None):
+        # `app` is the running Neo. Optional, so the --demo path and the tests
+        # construct this with no app at all; when it IS there, a key saved
+        # mid-flow upgrades the live process instead of waiting for a restart.
+        self._app = app
         self._say = say or (lambda t: None)
         self._log = log
         self._on_done = on_done
@@ -716,8 +816,10 @@ class Onboarding:
             pass
         import connectors as _conn
         html = (_HTML.replace("%TOUR%", json.dumps(TOUR))
-                     .replace("%CONNS%", json.dumps([{"key": k, "name": n, "why": w, "rec": r}
-                                                     for k, n, w, r in _conn.CONNECTORS]))
+                     .replace("%CONNS%", json.dumps([
+                         {"key": k, "name": n, "why": w, "rec": r,
+                          "how": _conn.HOW_LABEL.get(how, "")}
+                         for k, n, w, r, how in _conn.CONNECTORS]))
                      .replace("%PERMS%", json.dumps([
                          {"key": k, "name": n, "why": w,
                           "required": k in __import__("perms").REQUIRED}
@@ -781,10 +883,30 @@ class Onboarding:
         self._clip_seen = text
         key = key_in(text)
         if key and save_key(key, self._env):
+            n = len(existing_keys(self._env))
             self._state["key"] = {"saved": True, "tail": "…" + key[-6:],
-                                  "where": self._env}
+                                  "where": self._env, "count": n, "watching": True}
             self._log(f"[onboard] Gemini key saved from the clipboard -> {self._env}")
-            self._say("Got it. That's my real voice from here on.")
+            # Actually BECOME the full version before saying so. This line used
+            # to promise "that's my real voice from here on" while the process
+            # carried on in Kokoro with the local brain, because KEYLESS is
+            # decided at import. Claiming a thing and not doing it is the one
+            # output this project forbids, and it was happening here.
+            upgraded = False
+            app = getattr(self, "_app", None)
+            if app is not None and hasattr(app, "key_arrived"):
+                try:
+                    upgraded = bool(app.key_arrived(key))
+                except Exception as e:
+                    self._log(f"[onboard] key upgrade failed: {e}")
+            self._state["key"]["upgraded"] = upgraded
+            if n == 1:
+                self._say("Got it. That's my real voice from here on. Add a second "
+                          "key if you want and you get double the daily allowance."
+                          if upgraded else
+                          "Got it, key saved. I'll be the full version next time I start.")
+            else:
+                self._say(f"That's {n} keys. {n} times the daily allowance.")
 
     # ---- messages from the page ------------------------------------------- #
     def _on_message(self, m):

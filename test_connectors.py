@@ -20,9 +20,24 @@ def check(name, cond):
         FAILED.append(name)
 
 
-keys = [k for k, _, _, _ in connectors.CONNECTORS]
-check("connectors: the seven, recommended first", keys[:3] == ["calendar", "google", "claude"] and set(keys) == {"calendar", "google", "claude", "chatgpt", "reminders", "contacts", "mail"})
-check("connectors: calendar, google and claude are recommended; chatgpt is the alternative", connectors.RECOMMENDED == ["calendar", "google", "claude"])
+keys = [c[0] for c in connectors.CONNECTORS]
+# Ordered by WHAT PRESSING CONNECT DOES, not by how much we like the feature.
+# Every one-tap connector comes first, because the scene should open with the
+# things that genuinely just work. Presenting a one-tap macOS prompt and a
+# browser sign-in identically is what made this screen feel broken: you press
+# Connect expecting a prompt, a System Settings pane opens instead, and you are
+# left to work out what to do with it.
+check("connectors: all seven, and the one-tap ones lead",
+      set(keys) == {"calendar", "google", "claude", "chatgpt", "reminders", "contacts", "mail"}
+      and keys[:3] == ["calendar", "reminders", "contacts"]
+      and [connectors.HOW[k] for k in keys[:3]] == ["tap", "tap", "tap"])
+check("connectors: every row says what the button will actually do",
+      set(connectors.HOW) == set(keys)
+      and set(connectors.HOW.values()) <= {"tap", "signin", "setup"}
+      and connectors.HOW["google"] == "signin" and connectors.HOW["claude"] == "signin"
+      and connectors.HOW["mail"] == "setup")
+check("connectors: the recommended ones are the ones that change the day",
+      set(connectors.RECOMMENDED) == {"calendar", "reminders", "claude", "google"})
 st = connectors.status()
 check("status: answers for every connector without prompting", set(st) == set(keys))
 check("status: google is never probed on a status call (that would launch a browser)", st["google"] is False)
@@ -58,8 +73,11 @@ check("onboarding: each row has a Connect button that asks now", "action:\\'conn
 check("onboarding: the row shows what was read back", "connNote" in html)
 check("onboarding: the connect runs off the main thread (a prompt can sit)", "name=\"neo-onboard-connect\"" in open("onboard.py").read())
 check("onboarding: has a recorded line", "connect" in onboard.NARRATION)
-check("onboarding: says press Connect then Approve, and marks recommended rows",
-      "press <b>Allow</b> or <b>Approve</b>" in html and 'content:"recommended"' in html and '"rec": r' in open("onboard.py").read())
+check("onboarding: says press Connect then Allow, and marks recommended rows",
+      "then <b>Allow</b> on the prompt" in html and 'content:"recommended"' in html
+      and '"rec": r' in open("onboard.py").read())
+check("onboarding: the page is told what each button does, and shows it",
+      '"how": _conn.HOW_LABEL' in open("onboard.py").read() and 'class="how h-' in html)
 
 # ---- the heavy engine: Claude Code or ChatGPT (Codex), detected not assumed ----
 import heavy

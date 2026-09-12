@@ -54,7 +54,17 @@ SEND_BATCH_MAX = int(os.getenv("NEO_SEND_BATCH", "20"))
 # it — so this is about the mic, not about losing your place.
 IDLE_TIMEOUT_S = float(os.getenv("NEO_LIVE_IDLE", "45"))
 
-VOICE = os.getenv("NEO_LIVE_VOICE", "Charon")   # deep and calm, matches bm_fable
+# THE voice. One constant, because Neo speaks through three different paths
+# (this socket, neo.py's cloud TTS, and the recorded onboarding narration) and
+# they must all be the same person. onboard_record.py used to hardcode "Charon"
+# separately, so changing the voice here silently left the onboarding narration
+# as the old one — two different people in the first two minutes.
+#
+# Charon is Google's "Informative" voice: flat, newsreader-ish, and the thing
+# people describe as robotic. Sulafat is the warm one. Audition any other with
+#   NEO_LIVE_VOICE=Puck .venv/bin/python onboard_record.py --all
+# (names: Puck, Kore, Aoede, Callirrhoe, Achird, Zubenelgenubi, Sulafat, Charon)
+VOICE = os.getenv("NEO_LIVE_VOICE", "Sulafat")
 
 # Hold the key to talk, let go and Neo answers. That means Neo — not the model's
 # silence detector — decides when a turn ends, so automatic activity detection

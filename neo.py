@@ -3135,6 +3135,63 @@ class Neo:
             with self._live_start_lock:
                 self._live_starting = False
 
+    def key_arrived(self, key=""):
+        """A Gemini key just landed mid-session. Become the full Neo, now.
+
+        KEYLESS is decided once, at import, from the .env that existed then.
+        So a key saved during onboarding changed nothing in the running
+        process: the brain stayed LocalBrain, the voice stayed Kokoro, and the
+        onboarding cheerfully said "Got it. That's my real voice from here on."
+        while continuing in the local one. Neo promising a thing and not doing
+        it is the single worst output this codebase has a rule against, and it
+        was happening in the first two minutes of every install.
+
+        Restarting would also fix it, but a restart during onboarding throws
+        the person back to the welcome scene, so this upgrades in place: the
+        same swap the boot path does, minus the parts that are already up.
+        Safe to call twice; returns True when Neo is now the full version.
+        """
+        global KEYLESS, API_KEY
+        if key:
+            os.environ["GEMINI_API_KEY"] = key
+        API_KEY = os.getenv("GEMINI_API_KEY") or API_KEY
+        if not API_KEY or API_KEY == "paste_your_free_key_here":
+            return False
+        if not KEYLESS:
+            return True                     # already the full version
+        try:
+            KEYLESS = False
+            desc = getattr(self.brain, "skills_desc", "") if self.brain else ""
+            self.brain = Brain(skills_desc=desc)
+            providers.warm(self.brain.client, log)
+            # the cloud voice, and the filler lines re-cut in it
+            self.speech.gemini_client = self.brain.client
+            self.speech.set_engine("gemini")
+            try:
+                self.speech._recache()
+            except Exception as e:
+                log(f"[key] filler cache skipped: {e}")
+            self.speech.attach_ears(self.brain.client,
+                                    self.brain.mem.get("facts", []))
+            try:
+                self.claude.client = self.brain.client
+                _, self.claude.title_model = providers.resolve(
+                    "fast", self.brain.client, log=lambda m: None)
+            except Exception as e:
+                log(f"[key] no title model: {e}")
+            agent.bind(claude_bridge=self.claude, client=self.brain.client,
+                       model=MODEL, logger=log,
+                       set_voice_mode=self.set_voice_mode)
+            skills.set_ctx(skills.Ctx(client=self.brain.client, model=MODEL,
+                                      say=self.say, notify=self._deliver_insight))
+            log(f"[key] a key landed — full version live. Models: {providers.describe()}")
+            return True
+        except Exception as e:
+            # Back to honest local mode rather than a half-upgraded Neo.
+            KEYLESS = True
+            log(f"[key] upgrade failed ({type(e).__name__}: {e}); staying local.")
+            return False
+
     def _add_key_flow(self):
         """The way out of local mode, spoken. No terminal, no file to edit.
 
@@ -3176,7 +3233,13 @@ class Neo:
                 continue
             if not _ob.save_key(m.group(0)):
                 continue
-            log("[key] a key was saved from the clipboard — restarting.")
+            log("[key] a key was saved from the clipboard.")
+            # Upgrade in place first — no restart, no gap, no "come back in a
+            # few seconds". Only fall back to the relaunch if that fails.
+            if self.key_arrived(m.group(0)):
+                self._speak("Got it. That's my real voice, and I can think "
+                            "now. Ask me anything.")
+                return
             self._speak("Got it. Give me a few seconds to come back as the "
                         "full version.")
             time.sleep(2.0)
@@ -5611,7 +5674,7 @@ def main():
             import onboard
             if not onboard.onboarded():
                 neo.onboarding = onboard.Onboarding(
-                    say=neo.say, log=log,
+                    say=neo.say, log=log, app=neo,
                     on_done=lambda: setattr(neo, "onboarding", None))
                 log("[onboard] first run — walking them through setup")
         except Exception as e:

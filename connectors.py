@@ -23,18 +23,34 @@ import subprocess
 
 INTERNET_ACCOUNTS = "x-apple.systempreferences:com.apple.Internet-Accounts-Settings.extension"
 
-# (key, name, what it's for, recommended). Recommended = the ones that
-# change what Neo can do every day; the rest are worth it if you use them.
+# (key, name, what it's for, recommended, how). Recommended = the ones that
+# change what Neo can do every day.
+#
+# `how` is the honest one, and it exists because the Connect scene used to
+# present all seven identically, as if each were one tap. Three of them are:
+# macOS raises its own prompt and you press Allow. The other four are not, and
+# pretending otherwise is what made this screen feel broken — you press Connect
+# expecting a prompt, a System Settings pane opens instead, and you are left to
+# work out what to do with it.
+#
+#   "tap"    macOS raises its own prompt. Press Allow. Genuinely one tap.
+#   "signin" a browser or terminal sign-in with your own account.
+#   "setup"  needs something configured on this Mac before it can work at all.
+#
+# Ordered so every one-tap connector comes first: the scene should open with
+# the things that just work.
 CONNECTORS = [
-    ("calendar",  "Calendar",    "What's on your week; finding a time.", True),
-    ("google",    "Google",      "Gmail, Google Calendar, Drive and your directory, through Neo's own browser.", True),
-    ("claude",    "Claude Code", "The heavy engine: real code, data and multi-step computer work, on your Claude plan.", True),
-    ("chatgpt",   "ChatGPT",     "The same heavy engine on a ChatGPT plan (OpenAI's Codex). Pick this or Claude.", False),
-    ("reminders", "Reminders",   "Remind me to… lands in Reminders.", False),
-    ("contacts",  "Contacts",    "Who people are: phone numbers, and emails if they're there.", False),
-    ("mail",      "Mail",        "Reading the inbox and opening drafts in the Mail app.", False),
+    ("calendar",  "Calendar",    "What's on your week; finding a time.", True, "tap"),
+    ("reminders", "Reminders",   "Remind me to… lands in Reminders.", True, "tap"),
+    ("contacts",  "Contacts",    "Who people are: phone numbers, and emails if they're there.", False, "tap"),
+    ("claude",    "Claude Code", "The heavy engine: real code, data and multi-step computer work, on your Claude plan.", True, "signin"),
+    ("chatgpt",   "ChatGPT",     "The same heavy engine on a ChatGPT plan (OpenAI's Codex). Pick this or Claude.", False, "signin"),
+    ("google",    "Google",      "Gmail, Google Calendar, Drive and your directory, through Neo's own browser.", True, "signin"),
+    ("mail",      "Mail",        "Reading the inbox and opening drafts in the Mail app.", False, "setup"),
 ]
-RECOMMENDED = [k for k, _, _, r in CONNECTORS if r]
+RECOMMENDED = [c[0] for c in CONNECTORS if c[3]]
+HOW = {c[0]: c[4] for c in CONNECTORS}
+HOW_LABEL = {"tap": "one tap", "signin": "sign in", "setup": "needs setup"}
 
 
 # --------------------------------------------------------------------------- #
@@ -239,7 +255,7 @@ _pending = {}           # key -> the request text to re-run after approval
 
 def need(key, why="", resume=""):
     """Raise the card. Returns the sentence for the model to say."""
-    name = dict((k, n) for k, n, _, _ in CONNECTORS).get(key, key)
+    name = dict((c[0], c[1]) for c in CONNECTORS).get(key, key)
     if resume:
         _pending[key] = resume
     card = {"key": f"need:{key}", "kind": "need", "urgency": "high",
@@ -270,4 +286,4 @@ def describe():
     st = status()
     return "\n".join(f"{n:<12} {'connected' if st.get(k) else ('unknown' if st.get(k) is None else 'not connected')}"
                      + ("  (recommended)" if r and not st.get(k) else "")
-                     for k, n, _, r in CONNECTORS)
+                     for k, n, _, r, _how in CONNECTORS)
