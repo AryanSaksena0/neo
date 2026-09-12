@@ -145,6 +145,17 @@ check("install: refuses anything that isn't an Apple Silicon Mac",
       "arm64" in _inst and "Darwin" in _inst)
 check("install: is re-runnable (pulls if already there)",
       "pull --ff-only" in _inst)
+# A non-empty ~/neo is the NORMAL failed state, not a rare one: Neo's own
+# Chrome recreates .browser/ after everything else is deleted. `git clone`
+# refuses a non-empty directory, so the one-liner died with a git error.
+check("install: a non-empty ~/neo does not kill the installer",
+      "is not an empty directory" in _inst or "keeping what's already there" in _inst)
+check("install: and it lays the code in WITHOUT destroying .env or .browser",
+      "tar cf -" in _inst and "rm -rf \"$DIR\"" not in _inst)
+_mk = open("make_app.sh").read()
+check("stop: takes Neo's own Chrome with it, matched on the profile path",
+      "stop_neo_chrome" in _mk and "--user-data-dir=$prof" in _mk)
+
 check("install: ends by opening Neo, which does the rest",
       "make_app.sh" in _inst)
 

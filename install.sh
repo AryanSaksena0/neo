@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — Neo, in one line.
 #
-#   curl -fsSL https://raw.githubusercontent.com/aryansaksena2010-web/neo/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/AryanSaskena0/neo/main/install.sh | bash
 #
 # What it does, in order, saying each step once and nothing else:
 #   1. checks this is a Mac with Apple Silicon
@@ -14,7 +14,7 @@
 # Re-runnable. Nothing here asks a question it can answer itself.
 set -euo pipefail
 
-REPO="${NEO_REPO:-https://github.com/aryansaksena2010-web/neo.git}"
+REPO="${NEO_REPO:-https://github.com/AryanSaskena0/neo.git}"
 DIR="${NEO_DIR:-$HOME/neo}"
 
 say()  { printf '\033[1m%s\033[0m\n' "$*"; }
@@ -49,6 +49,21 @@ fi
 if [ -d "$DIR/.git" ]; then
   say "Updating Neo in $DIR"
   git -C "$DIR" pull --ff-only
+elif [ -d "$DIR" ] && [ -n "$(ls -A "$DIR" 2>/dev/null)" ]; then
+  # The folder exists but is not a checkout. `git clone` refuses a non-empty
+  # directory and dies with "destination path already exists and is not an
+  # empty directory", which is a git error, not an answer — and it is exactly
+  # what a half-removed or interrupted install leaves behind. (Neo's own Chrome
+  # profile lives in .browser/, and an orphaned Chrome recreates that folder
+  # after the rest is gone, so this is the NORMAL failure, not a rare one.)
+  #
+  # So: clone somewhere clean and lay the code in beside whatever is already
+  # there. Anything of the person's — .env, .browser/, memory.json — survives.
+  say "Getting Neo into $DIR (keeping what's already there)"
+  tmp="$(mktemp -d)"
+  git clone --depth 1 "$REPO" "$tmp/neo"
+  ( cd "$tmp/neo" && tar cf - . ) | ( cd "$DIR" && tar xf - )
+  rm -rf "$tmp"
 else
   say "Getting Neo into $DIR"
   git clone --depth 1 "$REPO" "$DIR"

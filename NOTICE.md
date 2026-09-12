@@ -44,7 +44,7 @@ terms, which are between you and them. See [TERMS.md](TERMS.md) and
 ## Copyright
 
     Neo — a voice assistant for macOS.
-    Copyright (C) 2026 aryansaksena2010-web
+    Copyright (C) 2026 AryanSaskena0
 
     This program is free software: you can redistribute it and/or modify it
     under the terms of the GNU Affero General Public License as published by

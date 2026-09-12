@@ -33,10 +33,29 @@ PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 MODE="${1:-}"
 THROTTLE=10
 
+# Neo drives its OWN copy of Chrome, with its own profile in .browser/. That
+# Chrome is a separate process tree and pkill on neo.py never touched it, so
+# "stopped" left a browser running that kept the profile alive — and rewrote
+# .browser/ seconds after the folder was deleted, which is what made a
+# reinstall fail with "destination path already exists and is not an empty
+# directory". Matched on the profile path so only NEO's Chrome dies; the
+# person's own browser and their open tabs are untouched.
+stop_neo_chrome() {
+  local prof="$NEO_DIR/.browser"
+  local pids
+  pids="$(pgrep -f -- "--user-data-dir=$prof" 2>/dev/null || true)"
+  [ -n "$pids" ] && kill $pids 2>/dev/null || true
+  sleep 1
+  pids="$(pgrep -f -- "--user-data-dir=$prof" 2>/dev/null || true)"
+  [ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
+  return 0
+}
+
 if [ "$MODE" = "--stop" ]; then
   launchctl bootout "gui/$UID/$LABEL" 2>/dev/null || \
     launchctl unload "$PLIST" 2>/dev/null || true
   pkill -f "neo.py" 2>/dev/null || true
+  stop_neo_chrome
   echo "Neo stopped, and it won't come back until:  ./make_app.sh --start"
   exit 0
 fi
