@@ -64,7 +64,13 @@ IDLE_TIMEOUT_S = float(os.getenv("NEO_LIVE_IDLE", "45"))
 # people describe as robotic. Sulafat is the warm one. Audition any other with
 #   NEO_LIVE_VOICE=Puck .venv/bin/python onboard_record.py --all
 # (names: Puck, Kore, Aoede, Callirrhoe, Achird, Zubenelgenubi, Sulafat, Charon)
-VOICE = os.getenv("NEO_LIVE_VOICE", "Sulafat")
+# Charon. This is Neo's voice and people recognise it; it was briefly changed
+# to Sulafat, which is a woman's voice, and the owner's first reaction was
+# "why is it the girl's voice". What was actually wrong before was never the
+# voice — it was the recording instruction telling the model to speak
+# "calmly and unhurried", which made it drag. That is fixed in
+# onboard_record.py. Same person, normal pace.
+VOICE = os.getenv("NEO_LIVE_VOICE", "Charon")
 
 # Hold the key to talk, let go and Neo answers. That means Neo — not the model's
 # silence detector — decides when a turn ends, so automatic activity detection

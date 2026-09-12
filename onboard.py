@@ -335,7 +335,33 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   .how.h-sign{color:#8fb8ff;border-color:rgba(143,184,255,.34)}
   .sub.quota{font-size:15px;color:var(--fg3);margin-top:-2px;max-width:48ch}
   .sub.quota b{color:var(--fg2)}
+  /* Say where a pre-filled value came from. Seeing your own name already in
+     the box reads as "how does it know that" unless something says it came
+     off the Mac itself — which it did, from `id -F`, with nothing looked up. */
+  .prefill{display:block;margin-top:6px;font-size:13.5px;color:var(--fg3)}
   [hidden]{display:none !important}
+  /* ---- depth. A flat black rectangle with centred text is what "bare bones"
+     means; one soft light behind the wordmark is what makes it look built. ---- */
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(120vw 70vh at 50% -18%, rgba(41,151,255,.10), transparent 62%),
+      radial-gradient(80vw 46vh at 50% 118%, rgba(255,255,255,.045), transparent 60%)}
+  .scene{position:relative;z-index:1}
+
+  /* ---- the demo line: what Neo is actually for, in its own words, typed out.
+     This replaces three CSS mock-ups of windows that read as grey placeholder
+     boxes. Real sentences a person can say beat a drawing of a window. ---- */
+  .demo{margin:26px 0 30px;min-height:74px;display:flex;flex-direction:column;
+        align-items:center;justify-content:center;gap:9px}
+  .demoline{display:flex;align-items:center;gap:3px;font-size:21px;
+            letter-spacing:-.01em;color:var(--fg);min-height:28px}
+  .demo .a{font-size:15px;color:var(--fg3);min-height:20px;
+           transition:opacity .45s var(--ease)}
+  .caret{display:inline-block;width:2px;height:1.05em;background:var(--blue);
+         border-radius:1px;animation:blink 1.05s step-end infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+  @media (prefers-reduced-motion:reduce){ .caret{animation:none} }
+
   /* ---- the welcome hero. Type, not fake screenshots. The old welcome put
      three CSS mock-ups of windows on the first screen; they read as grey
      placeholder boxes, which is the worst possible first impression for a
@@ -506,8 +532,12 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     <section class="scene" data-s="welcome">
       <div class="mark arrive">Neo</div>
       <h1 class="hero arrive">Hold <span class="key big">fn</span>.<br>Say it. Let go.</h1>
-      <p class="sub wide arrive">That's the whole thing. No window to open, no wake
-        word, nothing to click. The microphone is open only while the key is down.</p>
+      <p class="sub wide arrive">No window to open, no wake word, nothing to click.
+        The microphone is open only while the key is down.</p>
+      <div class="demo arrive" aria-hidden="true">
+        <div class="demoline"><span class="q" id="demoQ"></span><span class="caret"></span></div>
+        <div class="a" id="demoA"></div>
+      </div>
       <div class="row arrive"><button class="primary" onclick="go('perms')">Set me up</button></div>
       <div class="foot arrive">Two minutes<span class="dot">·</span>Nothing bills<span class="dot">·</span>Nothing leaves your Mac but the question<br>
         <a href="#" onclick="send({action:'open_doc',doc:'TERMS.md'});return false">Terms</a><span class="dot">·</span><a href="#" onclick="send({action:'open_doc',doc:'PRIVACY.md'});return false">Privacy</a></div>
@@ -552,7 +582,9 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 
     <section class="scene" data-s="about">
       <h1 class="arrive">A few things about you.</h1>
-      <p class="sub arrive">So Neo is yours from the first sentence. Change any of it later by just telling Neo.</p>
+      <p class="sub arrive">So Neo is yours from the first sentence. Change any of it
+        later by just telling Neo. <span class="prefill">Your name is filled in from
+        this Mac's account — nothing was looked up.</span></p>
       <div class="form card arrive">
         <label>What should Neo call you?<input id="aName" type="text" autocomplete="off" spellcheck="false" placeholder="First name"></label>
         <label>What do you do?<input id="aRole" type="text" autocomplete="off" spellcheck="false" placeholder="Student · engineer · founder · teacher · parent…"></label>
@@ -637,6 +669,38 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   // element used to throw here and take every later line of this script with
   // it — including the tour and the scene machinery.
   function fill(id, html){ var el = document.getElementById(id); if (el) el.innerHTML = html; }
+
+  /* The welcome demo: type a real command, show what Neo does, move on.
+     Pauses itself when the scene isn't showing, and respects reduced motion. */
+  var DEMO = [
+    ["What does this error mean?",        "reads what's on your screen"],
+    ["Where do I turn off read receipts?","a ring lands on the real control"],
+    ["Remind me to call mum at six.",     "goes into Reminders, read back to you"],
+    ["Summarise the PDF I've got open.",  "opens it, reads it, tells you"],
+    ["What's Apple at?",                  "live price, no subscription"]
+  ];
+  (function demoLoop(){
+    var q = document.getElementById("demoQ"), a = document.getElementById("demoA");
+    if (!q || !a) return;
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var i = 0;
+    function show(){
+      if (cur !== "welcome"){ setTimeout(show, 700); return; }   // only on screen 1
+      var item = DEMO[i % DEMO.length]; i++;
+      a.style.opacity = 0;
+      if (reduce){ q.textContent = item[0]; a.textContent = item[1]; a.style.opacity = 1;
+                   setTimeout(show, 3600); return; }
+      q.textContent = ""; var n = 0;
+      (function type(){
+        if (cur !== "welcome") { setTimeout(show, 700); return; }
+        q.textContent = item[0].slice(0, ++n);
+        if (n < item[0].length) return setTimeout(type, 26 + Math.random() * 30);
+        a.textContent = item[1]; a.style.opacity = 1;
+        setTimeout(show, 2300);
+      })();
+    }
+    show();
+  })();
   fill("tour", [CARDS[3],CARDS[4],CARDS[5],CARDS[6],CARDS[0],CARDS[2]].map(tile).join(""));
   fill("also", 'Also: ' + TOUR.slice(6).map(function(c){ return esc(c[0]); }).join('<span class="dot">·</span>'));
 
@@ -859,7 +923,13 @@ class Onboarding:
             self._polling = True
             threading.Thread(target=self._poll_perms, daemon=True,
                              name="neo-onboard-perms").start()
-        if self._scene == "key" and not self._state["key"].get("saved"):
+        # Watch for as long as they are on the key scene — NOT "until one key
+        # lands". Stopping at the first key is what made a second and third
+        # impossible to add: the screen invited another, the copy did nothing,
+        # and the person concluded the feature was broken. Which it was.
+        # Each extra key is another full day's allowance, so this is the one
+        # place in the product where more is genuinely better.
+        if self._scene == "key":
             self._watch_clipboard()
         self._push()
 

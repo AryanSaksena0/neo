@@ -92,11 +92,23 @@ def main():
         if same and not everything:
             print(f"  {scene:<8} unchanged ({VOICE})")
             continue
-        a = record(text, keys)
+        try:
+            a = record(text, keys)
+        except RuntimeError as e:
+            # Gemini's TTS free tier is 10 requests/day/project. Running out
+            # part-way is NORMAL, not a crash: everything recorded so far is
+            # already on disk and correct. Say exactly what is left and stop.
+            left = [k for k in onboard.NARRATION
+                    if not os.path.exists(os.path.join(onboard.AUDIO_DIR, f"{k}.wav"))]
+            print(f"\n  out of TTS quota for today ({len(left)} left: {', '.join(left)})")
+            print("  everything recorded so far is saved. Re-run this tomorrow "
+                  "and it finishes only what's missing.")
+            print(f"  ({str(e)[:100]})")
+            return 1
         save_wav(wav, a)
         open(txt, "w").write(want)
         print(f"  {scene:<8} {a.size / 24000:.1f}s  peak {float(np.abs(a).max()):.2f}")
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

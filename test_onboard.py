@@ -89,6 +89,19 @@ check("welcome: leads with the gesture, not a generic tagline",
       and "The all-in-one assistant for your Mac." not in onboard._HTML)
 check("welcome: no fake screenshots on the first screen",
       'id="showcase"' not in onboard._HTML and "CARDS.slice(0,3)" not in onboard._HTML)
+# "Bare bones" was the reaction to a flat black rectangle with centred text.
+# It now has depth behind the wordmark and a line that types out real commands
+# with what Neo actually does about them.
+check("welcome: has depth, not a flat black rectangle",
+      "body::before" in onboard._HTML and "radial-gradient" in onboard._HTML)
+check("welcome: shows real commands, typed out, with what each one does",
+      'id="demoQ"' in onboard._HTML and "var DEMO" in onboard._HTML
+      and "Remind me to call mum at six." in onboard._HTML
+      and "a ring lands on the real control" in onboard._HTML)
+check("welcome: the demo only runs while the welcome is on screen",
+      'if (cur !== "welcome")' in onboard._HTML)
+check("welcome: and it respects reduced motion",
+      "prefers-reduced-motion" in onboard._HTML)
 check("welcome: and the tour still has the real commands to show",
       all(f'{k}:' in onboard._HTML for k in ("point", "hl", "remind", "see", "do", "mail", "answer")))
 check("welcome: a missing element can never take the whole script down again",
@@ -141,6 +154,25 @@ check("first words: Neo tells the onboarding when it actually hears something",
 
 # ---- the installer ----
 _inst = open("install.sh").read()
+# More than one key is the whole point: the free allowance is per Google
+# PROJECT, so each extra key is another full day. Two things used to stop it —
+# save_key overwrote slot one, and the clipboard watcher switched itself off
+# the moment the first key landed, so copying a second did nothing at all.
+import tempfile as _tf2
+_env2 = _os.path.join(_tf2.mkdtemp(), ".env")
+_K = ["AIzaSyD-" + c * 35 for c in "abc"]
+check("keys: a second and third go into their own slots",
+      all(onboard.save_key(k, _env2) for k in _K)
+      and len(onboard.existing_keys(_env2)) == 3)
+check("keys: re-copying one already in is a no-op, not a wasted slot",
+      onboard.save_key(_K[0], _env2) and len(onboard.existing_keys(_env2)) == 3)
+check("keys: they land in GEMINI_API_KEY, _2, _3 so providers rotates them",
+      all(f"GEMINI_API_KEY{s2}=" in open(_env2).read()
+          for s2 in ("", "_2", "_3")))
+_ob_src2 = open("onboard.py").read()
+check("keys: the clipboard is still watched AFTER the first one saves",
+      'if self._scene == "key":\n            self._watch_clipboard()' in _ob_src2)
+
 check("install: refuses anything that isn't an Apple Silicon Mac",
       "arm64" in _inst and "Darwin" in _inst)
 check("install: is re-runnable (pulls if already there)",
