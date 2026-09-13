@@ -458,7 +458,7 @@ def pick(lines, ask, client, model=None, cap=4, log=print):
         return [], ""
     # THE LINE, NOT ITS TEXT. Returning text threw the model's choice away:
     # show() then re-found the words with find_phrase, which returns the first
-    # match on screen — so even a correct pick of the Friday "AP US HISTORY"
+    # match on screen — so even a correct pick of the Friday "HISTORY"
     # was drawn on Tuesday's. The chosen line carries its own box.
     chosen = []
     for n in (got.get("lines") or [])[:cap]:

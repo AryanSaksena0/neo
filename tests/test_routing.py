@@ -8,6 +8,13 @@ Claude Code test run cross-checks the two and flags drift.
 Run:  python test_routing.py
 """
 
+# Suites live in tests/ but RUN from the repo root, so that the modules
+# under test import and open("neo.py") still resolves. This makes the
+# import work either way, so a suite can also be run directly.
+import os as _bootstrap_os, sys as _bootstrap_sys
+_bootstrap_sys.path.insert(0, _bootstrap_os.path.dirname(
+    _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))))
+
 import commands
 import hands
 import claude_bridge

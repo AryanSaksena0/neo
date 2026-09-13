@@ -4,6 +4,13 @@ test_neo.py — fast checks for Neo's pure logic (no audio/ML/GUI needed).
 Run:  python test_neo.py
 """
 
+# Suites live in tests/ but RUN from the repo root, so that the modules
+# under test import and open("neo.py") still resolves. This makes the
+# import work either way, so a suite can also be run directly.
+import os as _bootstrap_os, sys as _bootstrap_sys
+_bootstrap_sys.path.insert(0, _bootstrap_os.path.dirname(
+    _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))))
+
 import os
 import json as _json
 import tempfile
@@ -460,7 +467,7 @@ check("knowledge: empty memory degrades cleanly", _cb3._who_is_the_user() == "")
 check("knowledge: frame points Claude at CLAUDE.md",
       "CLAUDE.md" in _cb3.frame_goal("do a thing", "neo"))
 check("knowledge: neo project has a CLAUDE.md",
-      os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "CLAUDE.md")))
+      os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "CLAUDE.md")))
 
 # ---- self-correcting Claude + fallback ladder ----
 check("retry: hard failure retries once", _cb3.should_retry(1, False, False))
@@ -966,7 +973,7 @@ check("goalcheck: a hedgy 'can't' still verified",
 # ---- to-do skill: capture / list / complete + due parsing ----
 import importlib.util as _ilu
 _spec = _ilu.spec_from_file_location("neo_skill_todo",
-                                     os.path.join(os.path.dirname(os.path.abspath(__file__)), "skills", "todo.py"))
+                                     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skills", "todo.py"))
 todo = _ilu.module_from_spec(_spec); _spec.loader.exec_module(todo)
 check("todo: skill self_test passes", todo.self_test() is True)
 check("todo: 'remind me to X at 5' is NOT the list (set_reminder owns it)", todo.classify("remind me to call Jordan at 5") is None)
@@ -4040,6 +4047,16 @@ check("restart: NEO_MANAGED alone is not treated as proof",
       _managed_env_is_not_proof())
 
 _mk = open("make_app.sh").read()
+# Somebody's first hold on a fresh install getting silence is how they conclude
+# the product is broken. The rate limit and the short-hold floor both exist for
+# good reasons, and neither should apply to the very first lost turn.
+_src_drop = open("neo.py", encoding="utf-8").read()
+check("first turn: a lost first hold always gets an answer, rate limit or not",
+      "_dropped_one_yet" in _src_drop
+      and "if not getattr(self, \"_dropped_one_yet\", False):" in _src_drop)
+check("first turn: and the short-hold floor does not silence it either",
+      "held >= 1.2 or first_ever" in _src_drop)
+
 check("restart: --start says plainly when it could not supervise Neo",
       "NOTHING WILL RESTART IT" in _mk and "bootout" in _mk.split("--start")[1])
 

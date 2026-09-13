@@ -45,8 +45,19 @@ CONNECTORS = [
     ("contacts",  "Contacts",    "Who people are: phone numbers, and emails if they're there.", False, "tap"),
     ("claude",    "Claude Code", "The heavy engine: real code, data and multi-step computer work, on your Claude plan.", True, "signin"),
     ("chatgpt",   "ChatGPT",     "The same heavy engine on a ChatGPT plan (OpenAI's Codex). Pick this or Claude.", False, "signin"),
-    ("google",    "Google",      "Gmail, Google Calendar, Drive and your directory, through Neo's own browser.", True, "signin"),
-    ("mail",      "Mail",        "Reading the inbox and opening drafts in the Mail app.", False, "setup"),
+    # NOT "Google". The owner read that as the Google account already signed in
+    # on the Mac (System Settings > Internet Accounts) and asked why Neo was
+    # asking again when he was "already connected". It is a different account
+    # session entirely: Neo runs its OWN copy of Chrome, with its own profile,
+    # and this signs THAT in. The name has to say so.
+    ("google",    "Google in Neo's browser",
+     "Signs Neo's own private Chrome into Google, so it can read Gmail, Drive and your directory without touching your browser. Separate from the Google account on this Mac.", True, "signin"),
+    # "setup", not "tap": this one cannot be a permission prompt. If Mail.app has
+    # no account configured there is nothing to approve, so Neo opens Internet
+    # Accounts — which, unexplained, is the "it just takes you to a random
+    # System Settings page" complaint. The row now says what it will do.
+    ("mail",      "Apple Mail",
+     "Reads the inbox and writes drafts in the Mail app. Needs an account already added to Mail; Neo will open Internet Accounts if there isn't one.", False, "setup"),
 ]
 RECOMMENDED = [c[0] for c in CONNECTORS if c[3]]
 HOW = {c[0]: c[4] for c in CONNECTORS}

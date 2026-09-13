@@ -8,6 +8,13 @@ for the model-backed ones; those are marked and cost a handful of requests.
 
 Run: cd ~/Desktop/neo && .venv/bin/python test_live_tools.py
 """
+# Suites live in tests/ but RUN from the repo root, so that the modules
+# under test import and open("neo.py") still resolves. This makes the
+# import work either way, so a suite can also be run directly.
+import os as _bootstrap_os, sys as _bootstrap_sys
+_bootstrap_sys.path.insert(0, _bootstrap_os.path.dirname(
+    _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))))
+
 import os
 import re
 import sys
@@ -15,7 +22,7 @@ import time
 
 sys.path.insert(0, ".")
 from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 import agent
 import providers
@@ -55,8 +62,8 @@ out = timed("get_time", agent.get_time)
 check("get_time: a real clock", re.search(r"\d", out) and ("AM" in out or "PM" in out or ":" in out), out[:60])
 out = timed("calculate", agent.calculate, "17% of 2350")
 check("calculate: 17% of 2350 = 399.5", "399.5" in out, out[:60])
-out = timed("find_file", agent.find_file, "FEATURES.md")
-check("find_file: finds a file that exists", "FEATURES.md" in out, out[:80])
+out = timed("find_file", agent.find_file, "docs/FEATURES.md")
+check("find_file: finds a file that exists", "docs/FEATURES.md" in out, out[:80])
 out = timed("what_did_i_copy", agent.what_did_i_copy)
 check("what_did_i_copy: answers (clipboard may be empty)", isinstance(out, str) and out, out[:60])
 out = timed("get_weather", agent.get_weather, "")

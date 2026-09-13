@@ -12,6 +12,13 @@ as a free one. So:
 
 Run: python3 test_calendar.py
 """
+# Suites live in tests/ but RUN from the repo root, so that the modules
+# under test import and open("neo.py") still resolves. This makes the
+# import work either way, so a suite can also be run directly.
+import os as _bootstrap_os, sys as _bootstrap_sys
+_bootstrap_sys.path.insert(0, _bootstrap_os.path.dirname(
+    _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))))
+
 import datetime as dt
 import os
 import sys
@@ -34,11 +41,16 @@ NOW = dt.datetime(2026, 9, 11, 19, 0)
 # The week from the screenshot: advisory, a short class, a long class, lunch
 # class, afternoon class — different each day, the way a rotation is.
 DAY_PAGES = {
-    0: "Adv | Advisory 11, 8:30am\n4 | PHYSICS\n8:40am, 140\n5 | AMERICAN LITERATURE\n10:30 – 11:35am\n239\n6 | AP BIOLOGY\n12:10pm, 106\n7 | AP SPANISH\n1:40 – 2:45pm\n241\n",
-    1: "Adv | Advisory 11, 8:30am\n2 | PRE-CALCULUS\n10:30 – 11:35am\n441\n3 | AP US HISTORY\n11:40am, 308\n4 | PHYSICS, 1:15pm\n4 | PHYSICS\n1:40 – 2:45pm\n140\n",
-    2: "Adv | Advisory 11, 8:30am\n5 | AMERICAN LITERATURE\n8:40am, 239\n6 | AP BIOLOGY\n10:15 – 11:35am\n106\n7 | AP SPANISH\n11:40am, 241\n",
-    3: "Adv | Advisory 11, 8:30am\n2 | PRE-CALCULUS\n8:40am, 441\n3 | AP US HISTORY\n10:30 – 11:35am\n308\n4 | PHYSICS\n12:10pm, 140\n5 | AMERICAN LITERATURE\n1:40 – 2:45pm\n239\n",
-    4: "Adv | Advisory 11, 8:30am\n6 | AP BIOLOGY\n8:40am, 106\n7 | AP SPANISH\n10:30 – 11:35am\n241\n2 | PRE-CALCULUS\n1:40 – 2:45pm\n441\nTennis\n3pm, Warren Health\n",
+    # A made-up week. This fixture used to be the author's REAL timetable —
+    # their classes, their room numbers, their after-school club and the name of
+    # a local business — sitting in a public repository. Test fixtures are
+    # shipped code; personal data does not belong in them any more than it
+    # belongs in agent.py.
+    0: "Adv | Advisory 3, 8:30am\n4 | PHYSICS\n8:40am, 140\n5 | LITERATURE\n10:30 \u2013 11:35am\n239\n6 | BIOLOGY\n12:10pm, 106\n7 | SPANISH\n1:40 \u2013 2:45pm\n241\n",
+    1: "Adv | Advisory 3, 8:30am\n2 | PRE-CALCULUS\n10:30 \u2013 11:35am\n441\n3 | HISTORY\n11:40am, 308\n4 | PHYSICS, 1:15pm\n4 | PHYSICS\n1:40 \u2013 2:45pm\n140\n",
+    2: "Adv | Advisory 3, 8:30am\n5 | LITERATURE\n8:40am, 239\n6 | BIOLOGY\n10:15 \u2013 11:35am\n106\n7 | SPANISH\n11:40am, 241\n",
+    3: "Adv | Advisory 3, 8:30am\n2 | PRE-CALCULUS\n8:40am, 441\n3 | HISTORY\n10:30 \u2013 11:35am\n308\n4 | PHYSICS\n12:10pm, 140\n5 | LITERATURE\n1:40 \u2013 2:45pm\n239\n",
+    4: "Adv | Advisory 3, 8:30am\n6 | BIOLOGY\n8:40am, 106\n7 | SPANISH\n10:30 \u2013 11:35am\n241\n2 | PRE-CALCULUS\n1:40 \u2013 2:45pm\n441\nSwimming\n3pm, The Pool\n",
 }
 BUSY = []
 for d, page in DAY_PAGES.items():
@@ -145,7 +157,7 @@ L = [{"text": f"{h if h <= 12 else h - 12} {'AM' if h < 12 else 'PM'}", "x": 19,
 L += [{"text": d, "x": 24 + i * 10, "y": 20, "w": 2, "h": 1} for i, d in enumerate(["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"])]
 L += [{"text": "busy, 8:10am", "x": 65, "y": _y(8.17), "w": 3, "h": 1},
       {"text": "busy 8:45 – 9:45am", "x": 65, "y": _y(8.75), "w": 3, "h": 1},
-      {"text": "3 | AP US HISTORY 10:30 – 11:35am", "x": 65, "y": _y(10.5), "w": 4, "h": 1},
+      {"text": "3 | HISTORY 10:30 – 11:35am", "x": 65, "y": _y(10.5), "w": 4, "h": 1},
       {"text": "busy 11am", "x": 68, "y": _y(11.0), "w": 2, "h": 1},
       {"text": "busy, 11:5", "x": 68, "y": _y(11.83), "w": 2, "h": 1},
       {"text": "busy, 12:3", "x": 68, "y": _y(12.5), "w": 2, "h": 1},

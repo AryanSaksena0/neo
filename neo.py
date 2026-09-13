@@ -2659,7 +2659,12 @@ class Neo:
             stt_ms = int((_t.time() - self._turn_t0) * 1000)
             if not text:
                 log(f"(held {held:.1f}s, sound present, but no words came through)")
-                if held >= 1.2 and self._can_notice_drop():
+                # The 1.2s floor is there so an accidental tap doesn't get
+                # answered. It should not apply to the very first hold of a
+                # fresh install, which is somebody testing whether this works
+                # at all — and getting silence tells them it doesn't.
+                first_ever = not getattr(self, "_dropped_one_yet", False)
+                if (held >= 1.2 or first_ever) and self._can_notice_drop():
                     self._speak("I heard sound but couldn't make out any words. "
                                 "Say that again?")
                 else:
@@ -3018,9 +3023,21 @@ class Neo:
             log(f"error: {e}")
 
     def _can_notice_drop(self):
-        """At most one 'I couldn't hear you' notice per 20s — feedback,
-        not nagging, if the room is just noisy."""
+        """At most one 'I couldn't hear you' notice per 20s — feedback, not
+        nagging, if the room is just noisy.
+
+        The FIRST lost turn is always worth saying out loud, whatever the rate
+        limit says. Somebody who has just installed this holds the key, speaks,
+        and gets silence has no way to tell the difference between "it didn't
+        hear me", "it's broken" and "I'm holding the wrong key" — and that is
+        the moment they decide whether the thing works. It is never nagging the
+        first time.
+        """
         import time as _t
+        if not getattr(self, "_dropped_one_yet", False):
+            self._dropped_one_yet = True
+            self._last_drop_notice = _t.time()
+            return True
         last = getattr(self, "_last_drop_notice", 0.0)
         if _t.time() - last < 20:
             return False

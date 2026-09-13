@@ -11,6 +11,13 @@ example.com (nothing private) in your first non-Default profile, then reads the
 active tab URL back to prove the profile launch + tab-read round-trip works.
 """
 
+# Suites live in tests/ but RUN from the repo root, so that the modules
+# under test import and open("neo.py") still resolves. This makes the
+# import work either way, so a suite can also be run directly.
+import os as _bootstrap_os, sys as _bootstrap_sys
+_bootstrap_sys.path.insert(0, _bootstrap_os.path.dirname(
+    _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))))
+
 import sys
 
 import chrome

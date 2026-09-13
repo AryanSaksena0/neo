@@ -5,6 +5,13 @@ before it is done teaches the person to distrust everything Neo says after.
 
 Run: python3 test_onboard.py
 """
+# Suites live in tests/ but RUN from the repo root, so that the modules
+# under test import and open("neo.py") still resolves. This makes the
+# import work either way, so a suite can also be run directly.
+import os as _bootstrap_os, sys as _bootstrap_sys
+_bootstrap_sys.path.insert(0, _bootstrap_os.path.dirname(
+    _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))))
+
 import os
 import os as _os
 import sys
@@ -102,8 +109,19 @@ check("welcome: the demo only runs while the welcome is on screen",
       'if (cur !== "welcome")' in onboard._HTML)
 check("welcome: and it respects reduced motion",
       "prefers-reduced-motion" in onboard._HTML)
-check("welcome: and the tour still has the real commands to show",
-      all(f'{k}:' in onboard._HTML for k in ("point", "hl", "remind", "see", "do", "mail", "answer")))
+# Assert the actual sentences, not the internal keys of the old mock-up
+# drawings. The keys existed only to pick which fake window to render.
+check("tour: the real commands are there, each with what Neo does about it",
+      all(x in onboard._HTML for x in
+          ("Where do I turn off read receipts?", "Remind me to call mum at six.",
+           "Draft a reply to that.", "Lease or buy?"))
+      and "a ring lands on the real control" in onboard._HTML
+      and "written into Drafts" in onboard._HTML)
+check("tour: the cards arrive one at a time, not all at once",
+      'class="tile card step"' in onboard._HTML
+      and "animation-delay:calc(var(--i)" in onboard._HTML)
+check("tour: no CSS mock-ups of windows anywhere",
+      "VIG[" not in onboard._HTML and 'class="vig' not in onboard._HTML)
 check("welcome: a missing element can never take the whole script down again",
       "function fill(id, html)" in onboard._HTML and "if (el) el.innerHTML" in onboard._HTML)
 check("welcome: no intro sequence, no orb",
@@ -243,14 +261,14 @@ check("copy: the tour names nobody and nothing personal",
       not any(w in _tour for w in ("sam", "priya", "gym", "roth", "ira", "the project", "the user")))
 
 # ---- terms and privacy exist and are one click away ----
-check("legal: the policies exist", _os.path.exists("PRIVACY.md") and _os.path.exists("TERMS.md"))
-check("legal: the welcome links to both", "PRIVACY.md" in onboard._HTML and "TERMS.md" in onboard._HTML)
+check("legal: the policies exist", _os.path.exists("docs/PRIVACY.md") and _os.path.exists("docs/TERMS.md"))
+check("legal: the welcome links to both", "docs/PRIVACY.md" in onboard._HTML and "docs/TERMS.md" in onboard._HTML)
 # The policy used to reserve rights the code has no mechanism for: server
 # retention, and selling de-identified data, both marked [INTENDED]. Consenting
 # a user in advance to something that does not exist is the opposite of honest,
 # so the rule is now the strict one: the policy describes what ships TODAY.
-_priv = open("PRIVACY.md").read()
-_terms = open("TERMS.md").read()
+_priv = open("docs/PRIVACY.md").read()
+_terms = open("docs/TERMS.md").read()
 check("legal: the policy promises nothing that isn't built",
       "INTENDED" not in _priv and "[N]" not in _priv and "[link]" not in _priv
       and "[email address]" not in _priv)

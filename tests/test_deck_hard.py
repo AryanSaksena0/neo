@@ -4,6 +4,13 @@ Every check here exists because a real defect was found by adversarial audit,
 not because the code looked like it might want a test. Each one FAILS on the
 code as it was this morning. Run: python3 test_deck_hard.py
 """
+# Suites live in tests/ but RUN from the repo root, so that the modules
+# under test import and open("neo.py") still resolves. This makes the
+# import work either way, so a suite can also be run directly.
+import os as _bootstrap_os, sys as _bootstrap_sys
+_bootstrap_sys.path.insert(0, _bootstrap_os.path.dirname(
+    _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))))
+
 import json, re as _re, sys, time, threading
 sys.path.insert(0, ".")
 import deck, providers

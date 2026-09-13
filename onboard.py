@@ -339,6 +339,18 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
      the box reads as "how does it know that" unless something says it came
      off the Mac itself — which it did, from `id -F`, with nothing looked up. */
   .prefill{display:block;margin-top:6px;font-size:13.5px;color:var(--fg3)}
+  /* One by one. Six cards landing together is a wall; staggered, each one is
+     read. --i is the card's index, set inline by tile(). */
+  .tile.card{padding:16px 17px 15px;border-radius:15px}
+  .tile .say{font-size:15px;font-weight:500;letter-spacing:-.01em;margin:0;color:var(--fg)}
+  .tile .does{margin-top:7px;font-size:13px;color:var(--fg3);line-height:1.45}
+  .scene.on .step{opacity:0;transform:translateY(10px);
+    animation:stepIn .5s var(--ease) forwards;
+    animation-delay:calc(var(--i) * 110ms + 140ms)}
+  @keyframes stepIn{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    .scene.on .step{animation:none;opacity:1;transform:none}
+  }
   [hidden]{display:none !important}
   /* ---- depth. A flat black rectangle with centred text is what "bare bones"
      means; one soft light behind the wordmark is what makes it look built. ---- */
@@ -373,17 +385,6 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   .sub.wide{max-width:46ch;font-size:17px;line-height:1.5}
   @media (max-height:720px){ .hero{font-size:44px} }
 
-  /* ================= the showcase: little living windows ================= */
-  .tiles{display:grid;gap:14px;margin:0 0 30px}
-  .tiles.three{grid-template-columns:repeat(3,270px)}
-  .tiles.six{grid-template-columns:repeat(3,260px);gap:12px;margin-bottom:22px}
-  .tile{text-align:left}
-  .tile .vig{position:relative;height:150px;border-radius:16px;overflow:hidden;
-    background:var(--card);border:1px solid var(--line)}
-  .tiles.six .vig{height:118px;border-radius:14px}
-  .tile .say{font-size:14.5px;font-weight:500;letter-spacing:-.01em;margin:11px 4px 0;color:var(--fg)}
-  .tile .say:before{content:"\201C";color:var(--blue)} .tile .say:after{content:"\201D";color:var(--blue)}
-  .tile .what{font-size:12.5px;color:var(--fg2);line-height:1.4;margin:4px 4px 0}
 
   /* a tiny mac window */
   .win{position:absolute;left:18px;right:18px;top:18px;bottom:-10px;background:var(--card2);
@@ -394,72 +395,27 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   .ln{height:6px;border-radius:3px;background:#2C2C33}
   .lbl{height:7px;border-radius:3px;background:#3A3A42}
 
-  /* -- point: settings rows, a ring lands on the second toggle -- */
-  .v-point .rowi{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line)}
-  .v-point .tg{width:26px;height:15px;border-radius:8px;background:#3A3A42;position:relative;flex:none}
-  .v-point .tg.on{background:var(--ok)} .v-point .tg:after{content:"";position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:#fff}
-  .v-point .tg.on:after{left:13px}
-  .v-point .ring{position:absolute;width:40px;height:27px;border:2px solid var(--blue);border-radius:16px;
-    right:23px;top:71px;box-shadow:0 0 0 4px rgba(41,151,255,.25),0 0 22px rgba(41,151,255,.6);
-    opacity:0;animation:ring 6s var(--ease) infinite}
+  /* -- point: settings rows, a ring lands on the second toggle -- */ .v-point .tg:after{content:"";position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:#fff}
   @keyframes ring{0%,18%{opacity:0;transform:scale(1.6)}30%{opacity:1;transform:scale(1)}40%{transform:scale(1.06)}50%{transform:scale(1)}80%{opacity:1}92%,100%{opacity:0}}
 
   /* -- see: an error dialog, then the answer chip -- */
-  .v-see .dlg{position:absolute;left:34px;right:34px;top:48px;background:#26262C;border:1px solid var(--line);
-    border-radius:8px;padding:10px 12px;display:flex;gap:9px;align-items:flex-start}
-  .v-see .dlg b{width:14px;height:14px;border-radius:50%;background:#FF453A;flex:none;margin-top:1px}
-  .v-see .chip{position:absolute;left:24px;right:24px;bottom:14px;background:var(--blue);color:#fff;
-    font-size:11px;font-weight:500;padding:7px 10px;border-radius:9px;opacity:0;transform:translateY(8px);
-    animation:chip 6s var(--ease) infinite;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   @keyframes chip{0%,30%{opacity:0;transform:translateY(8px)}42%{opacity:1;transform:none}85%{opacity:1}95%,100%{opacity:0}}
 
   /* -- do: a form field types itself, then the button presses -- */
-  .v-do .fld{position:absolute;left:34px;right:34px;top:50px;height:26px;border:1px solid #3A3A42;border-radius:6px;
-    background:#0E0E11;padding:0 9px;display:flex;align-items:center;font:12px ui-monospace,Menlo,monospace;color:var(--fg)}
-  .v-do .fld span{display:inline-block;overflow:hidden;white-space:nowrap;width:0;animation:typeit 6s steps(15) infinite}
-  .v-do .fld em{width:1px;height:14px;background:var(--blue);margin-left:1px;animation:blink 1s steps(2) infinite}
   @keyframes typeit{0%,15%{width:0}45%,100%{width:112px}}
   @keyframes blink{50%{opacity:0}}
-  .v-do .btn{position:absolute;right:34px;top:88px;background:var(--blue);color:#fff;font-size:11px;font-weight:600;
-    padding:6px 14px;border-radius:6px;animation:press 6s var(--ease) infinite}
   @keyframes press{0%,60%{filter:brightness(1);transform:scale(1)}66%{filter:brightness(.7);transform:scale(.95)}72%,100%{filter:brightness(1);transform:scale(1)}}
 
-  /* -- remind: a notification slides in -- */
-  .v-remind .desk{position:absolute;inset:0;background:linear-gradient(160deg,#1B2340,#0E1020)}
-  .v-remind .note{position:absolute;right:16px;top:16px;width:190px;background:rgba(40,40,46,.92);border:1px solid var(--line);
-    border-radius:12px;padding:9px 11px;display:flex;gap:9px;align-items:center;box-shadow:0 12px 30px rgba(0,0,0,.5);
-    transform:translateX(120%);animation:slide 6s var(--ease) infinite}
-  .v-remind .note b{width:24px;height:24px;border-radius:7px;background:#FF3B30;flex:none;display:flex;align-items:center;justify-content:center}
-  .v-remind .note b:after{content:"";width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-sizing:border-box}
-  .v-remind .note .t{font-size:11px;line-height:1.3} .v-remind .note .t small{display:block;color:var(--fg2);font-size:10px}
+  /* -- remind: a notification slides in -- */ .v-remind .note .t small{display:block;color:var(--fg2);font-size:10px}
   @keyframes slide{0%,20%{transform:translateX(120%)}32%{transform:translateX(0)}82%{transform:translateX(0)}94%,100%{transform:translateX(120%)}}
 
-  /* -- mail: a draft fills in -- */
-  .v-mail .hdr{padding:8px 12px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;font-size:10px;color:var(--fg3)}
-  .v-mail .hdr .lbl{flex:1;max-width:120px}
-  .v-mail .body{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .v-mail .body .ln{width:0;animation:grow 6s var(--ease) infinite}
-  .v-mail .body .ln:nth-child(2){animation-delay:.25s}.v-mail .body .ln:nth-child(3){animation-delay:.5s;max-width:60%}
+  /* -- mail: a draft fills in -- */.v-mail .body .ln:nth-child(3){animation-delay:.5s;max-width:60%}
   @keyframes grow{0%,20%{width:0}40%,88%{width:100%}100%{width:0}}
-  .v-mail .badge{position:absolute;right:26px;top:24px;font-size:9px;font-weight:600;letter-spacing:.08em;color:var(--fg2);
-    border:1px solid var(--line);border-radius:999px;padding:3px 7px}
 
-  /* -- answer: a comparison panel, bars grow -- */
-  .v-answer .pnl{position:absolute;left:22px;right:22px;top:20px;bottom:-4px;background:var(--card2);border:1px solid var(--line);
-    border-radius:12px;padding:12px 14px}
-  .v-answer .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .v-answer .h{font-size:10px;font-weight:600;color:var(--fg2);margin-bottom:8px;letter-spacing:.04em}
-  .v-answer .bar{height:8px;border-radius:4px;background:#2C2C33;margin-bottom:7px;overflow:hidden}
-  .v-answer .bar i{display:block;height:100%;background:var(--blue);width:0;animation:fill 6s var(--ease) infinite}
-  .v-answer .bar:nth-child(3) i{animation-delay:.15s}.v-answer .bar:nth-child(4) i{animation-delay:.3s}
+  /* -- answer: a comparison panel, bars grow -- */.v-answer .bar:nth-child(4) i{animation-delay:.3s}
   @keyframes fill{0%,15%{width:0}45%,88%{width:var(--w)}100%{width:0}}
 
   /* -- highlight: a line in a document -- */
-  .v-hl .doc{position:absolute;left:30px;right:30px;top:22px;bottom:-6px;background:#F5F5F7;border-radius:8px 8px 0 0;padding:16px 16px;
-    display:flex;flex-direction:column;gap:8px}
-  .v-hl .doc .ln{background:#C9C9CE;position:relative;height:6px}
-  .v-hl .doc .ln.hit:before{content:"";position:absolute;inset:-4px -3px;border-radius:4px;background:rgba(255,214,10,.75);
-    width:0;animation:sweep 6s var(--ease) infinite}
   @keyframes sweep{0%,22%{width:0}40%,88%{width:calc(100% + 6px)}100%{width:0}}
 
   /* permissions */
@@ -540,7 +496,7 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
       </div>
       <div class="row arrive"><button class="primary" onclick="go('perms')">Set me up</button></div>
       <div class="foot arrive">Two minutes<span class="dot">·</span>Nothing bills<span class="dot">·</span>Nothing leaves your Mac but the question<br>
-        <a href="#" onclick="send({action:'open_doc',doc:'TERMS.md'});return false">Terms</a><span class="dot">·</span><a href="#" onclick="send({action:'open_doc',doc:'PRIVACY.md'});return false">Privacy</a></div>
+        <a href="#" onclick="send({action:'open_doc',doc:'docs/TERMS.md'});return false">Terms</a><span class="dot">·</span><a href="#" onclick="send({action:'open_doc',doc:'docs/PRIVACY.md'});return false">Privacy</a></div>
     </section>
 
     <section class="scene" data-s="perms">
@@ -632,38 +588,24 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 
   // The little living windows. Each is a real thing Neo does, drawn small
   // and looping, so the person SEES the use case instead of reading it.
-  var VIG = {
-    see: '<div class="win"><div class="bar"><i></i><i></i><i></i></div></div>'+
-         '<div class="dlg"><b></b><div><div class="lbl" style="width:90px;margin-bottom:6px"></div><div class="ln" style="width:120px"></div></div></div>'+
-         '<div class="chip">That file is locked by another app — close it and retry.</div>',
-    point: '<div class="win"><div class="bar"><i></i><i></i><i></i></div>'+
-           '<div class="rowi"><div class="lbl" style="width:70px"></div><div class="tg on"></div></div>'+
-           '<div class="rowi"><div class="lbl" style="width:88px"></div><div class="tg on"></div></div>'+
-           '<div class="rowi"><div class="lbl" style="width:60px"></div><div class="tg"></div></div></div><div class="ring"></div>',
-    do:  '<div class="win"><div class="bar"><i></i><i></i><i></i></div></div>'+
-         '<div class="lbl" style="position:absolute;left:34px;top:36px;width:44px"></div>'+
-         '<div class="fld"><span>you@example.com</span><em></em></div><div class="btn">Submit</div>',
-    remind: '<div class="desk"></div><div class="note"><b></b><div class="t">Call mum<small>Today, 6:00 PM</small></div></div>',
-    mail: '<div class="win"><div class="bar"><i></i><i></i><i></i></div>'+
-          '<div class="hdr">To<div class="lbl"></div></div><div class="hdr">Subject<div class="lbl" style="max-width:90px"></div></div>'+
-          '<div class="body"><div class="ln"></div><div class="ln"></div><div class="ln"></div></div></div><div class="badge">DRAFT</div>',
-    answer: '<div class="pnl"><div class="cols"><div><div class="h">LEASE</div><div class="bar"><i style="--w:70%"></i></div><div class="bar"><i style="--w:40%"></i></div><div class="bar"><i style="--w:85%"></i></div></div>'+
-            '<div><div class="h">BUY</div><div class="bar"><i style="--w:45%"></i></div><div class="bar"><i style="--w:80%"></i></div><div class="bar"><i style="--w:55%"></i></div></div></div></div>',
-    hl:  '<div class="doc"><div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln" style="width:90%"></div><div class="ln hit" style="width:84%"></div><div class="ln" style="width:60%"></div></div>'
-  };
   // which window goes with which card, and the one line under it
   var CARDS = [
-    {v:"point",  say:"Where do I turn off read receipts?"},
-    {v:"hl",     say:"Highlight the line about the deadline."},
-    {v:"remind", say:"Remind me to call mum at six."},
-    {v:"see",    say:"What does this error mean?"},
-    {v:"do",     say:"Open the form and put my email in."},
-    {v:"mail",   say:"Draft a reply to that."},
-    {v:"answer", say:"Lease or buy?"}
+    {v:"point",  say:"Where do I turn off read receipts?", does:"a ring lands on the real control and follows you"},
+    {v:"hl",     say:"Highlight the line about the deadline.", does:"a highlighter goes over the actual words"},
+    {v:"remind", say:"Remind me to call mum at six.", does:"into Reminders, then read back to you"},
+    {v:"see",    say:"What does this error mean?", does:"it's already looking at your screen"},
+    {v:"do",     say:"Open the form and put my email in.", does:"it does it, it doesn't explain it"},
+    {v:"mail",   say:"Draft a reply to that.", does:"written into Drafts. You press send"},
+    {v:"answer", say:"Lease or buy?", does:"a small panel appears beside the answer"}
   ];
+  // No more CSS mock-ups of windows. They read as grey placeholder boxes, which
+  // is the opposite of what this screen is for. A real sentence you can say,
+  // and one line on what Neo does about it, is the whole card.
   function tile(c, i){
-    return '<div class="tile"><div class="vig v-'+c.v+'">'+VIG[c.v]+'</div>'+
-           '<div class="say">'+esc(c.say)+'</div></div>';
+    return '<div class="tile card step" style="--i:'+i+'">'+
+           '<div class="say">\u201C'+esc(c.say)+'\u201D</div>'+
+           (c.does ? '<div class="does">'+esc(c.does)+'</div>' : '')+
+           '</div>';
   }
   // Guarded: the welcome scene no longer has a #showcase, and one missing
   // element used to throw here and take every later line of this script with
@@ -1000,10 +942,17 @@ class Onboarding:
             import perms
             perms.open_settings(m.get("key", ""))
         elif action == "open_doc":
+            # The policies live in docs/ now (the repo root had a hundred files
+            # and pushed the README below the fold on GitHub). Still resolved by
+            # BASENAME against a known folder, never by a path from the page —
+            # the page must not be able to ask for an arbitrary file.
             import subprocess
-            doc = os.path.join(HERE, os.path.basename(m.get("doc", "")))
-            if os.path.exists(doc):
-                subprocess.Popen(["open", doc])
+            name = os.path.basename(m.get("doc", ""))
+            for base in (os.path.join(HERE, "docs"), HERE):
+                doc = os.path.join(base, name)
+                if name and os.path.exists(doc):
+                    subprocess.Popen(["open", doc])
+                    break
         elif action == "open_key_page":
             import subprocess
             subprocess.Popen(["open", KEY_URL])

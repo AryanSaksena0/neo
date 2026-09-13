@@ -9,6 +9,13 @@ it helps. Nothing greps for a phrase where it could run the code instead.
 
 Run: python3 test_overnight.py
 """
+# Suites live in tests/ but RUN from the repo root, so that the modules
+# under test import and open("neo.py") still resolves. This makes the
+# import work either way, so a suite can also be run directly.
+import os as _bootstrap_os, sys as _bootstrap_sys
+_bootstrap_sys.path.insert(0, _bootstrap_os.path.dirname(
+    _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))))
+
 import os
 import sys
 import time
@@ -103,7 +110,7 @@ check("open_file and the window check exist",
       callable(getattr(desk, "open_file", None))
       and callable(getattr(desk, "window_showing", None)))
 
-DOC = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+DOC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                    "2026_ppr_draft_strategy.md")
 if not LIVE:
     print("SKIP - live open checks (set NEO_LIVE_TESTS=1; they open files and "

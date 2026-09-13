@@ -53,7 +53,7 @@ With one key you will hit a wall mid-afternoon. With three you mostly won't.
 
 Everything else is optional and documented in [.env.example](.env.example) — a
 second free key for a bigger daily allowance, other providers as fallbacks, and
-the switches in [FEATURES.md](FEATURES.md).
+the switches in [FEATURES.md](docs/FEATURES.md).
 
 ## What it's like
 
@@ -83,7 +83,7 @@ the switches in [FEATURES.md](FEATURES.md).
 >
 > "Whisper." · "Hush." — quieter, or silent, instantly.
 
-The full list is in [FEATURES.md](FEATURES.md).
+The full list is in [FEATURES.md](docs/FEATURES.md).
 
 ## Things Neo will not do
 
@@ -132,10 +132,10 @@ conversation and the logs are plain files in the Neo folder; delete one and the
 thing is gone. The only thing that leaves your Mac is the question you asked,
 on its way to the model that answers it — and on a free API tier that provider
 may train on it. That trade is the price of the free key, and it is spelled out
-in full in [PRIVACY.md](PRIVACY.md).
+in full in [PRIVACY.md](docs/PRIVACY.md).
 
 ## Licence
 
 [AGPL-3.0](LICENSE). Free to run, read, change and share; if you run a modified
 Neo as a service, your users get your source too. Plain-English summary in
-[NOTICE.md](NOTICE.md), and [TERMS.md](TERMS.md) for the rest.
+[NOTICE.md](docs/NOTICE.md), and [TERMS.md](docs/TERMS.md) for the rest.

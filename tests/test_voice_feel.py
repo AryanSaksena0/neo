@@ -12,6 +12,13 @@ conversation, which is exactly the kind of thing a test must never do.
 
 Run: python3 test_voice_feel.py
 """
+# Suites live in tests/ but RUN from the repo root, so that the modules
+# under test import and open("neo.py") still resolves. This makes the
+# import work either way, so a suite can also be run directly.
+import os as _bootstrap_os, sys as _bootstrap_sys
+_bootstrap_sys.path.insert(0, _bootstrap_os.path.dirname(
+    _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))))
+
 import os
 import sys
 import tempfile
@@ -310,7 +317,7 @@ check("the fullscreen test requires the window to start at the very top — a "
 # then run:  NEO_MEMORY_AUDIT=1 .venv/bin/python test_voice_feel.py
 import memory
 
-_AUDIT = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".memory-audit")
+_AUDIT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".memory-audit")
 if os.getenv("NEO_MEMORY_AUDIT") != "1":
     skip("the owner's memory audit", "opt in with NEO_MEMORY_AUDIT=1")
 elif not os.path.exists(_AUDIT):

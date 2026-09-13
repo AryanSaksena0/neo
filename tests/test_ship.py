@@ -9,6 +9,13 @@
 
 Run: python3 test_ship.py
 """
+# Suites live in tests/ but RUN from the repo root, so that the modules
+# under test import and open("neo.py") still resolves. This makes the
+# import work either way, so a suite can also be run directly.
+import os as _bootstrap_os, sys as _bootstrap_sys
+_bootstrap_sys.path.insert(0, _bootstrap_os.path.dirname(
+    _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))))
+
 import glob
 import json
 import os
@@ -24,7 +31,7 @@ FAILED = []
 # The owner's own working notes. Gitignored, never in a release checkout, and
 # full of names by design — scanning them would fail forever for no reason.
 NOT_SHIPPED = {"CLAUDE.local.md", "PROJECT_NOTES.md", "CONVOREPORT.md",
-               "FINDINGS.md", "TESTREPORT.md", "HANDOFF.md"}
+               "FINDINGS.md", "TESTREPORT.md", "docs/HANDOFF.md"}
 # CLAUDE.md is NOT on that list on purpose. It ships, because frame_goal() and
 # selfrepair.py both tell Claude Code to read it, and on a fresh install it did
 # not exist — every handed-off job started with no project context at all. The
@@ -57,7 +64,7 @@ SHIPPED = [f for f in glob.glob("*.py") + glob.glob("skills/*.py") + glob.glob("
 # precisely the disclosure the whole file exists to prevent. A guard list of
 # real names is PII. It does not ship.
 def _personal_words():
-    here = os.path.dirname(os.path.abspath(__file__))
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     words = []
     try:
         for line in open(os.path.join(here, ".personal-words"), encoding="utf-8"):
@@ -122,29 +129,81 @@ for gone in ("db.py", "leads.py", "marketing.py", "pipeline.py", "mailwatch.py",
 
 # ---- 1a2. no real-world PLACE is hardcoded as a default ----
 # The deny list holds NAMES, so it sailed straight past
-#   DEFAULT_PLACE = os.getenv("NEO_HOME_TOWN", "Warren, New Jersey")
+#   DEFAULT_PLACE = os.getenv("NEO_HOME_TOWN", "<the author's home town>")
 # which published the first owner's home town in a public repository AND
 # answered every stranger's "what's the weather" with somebody else's town.
 # Anything that defaults to a place must derive it from the machine or ask.
-_PLACE_HINTS = ("new jersey", "new york", ", nj", ", ny", ", ca", ", tx",
-                "california", "texas", "london", "boston", "chicago")
+# Precise, via ast: find the STRING DEFAULTS — os.getenv("X", "literal") and
+# any assignment whose name mentions place/town/home/city — and check only
+# those for something that looks like a real location. Substring-scanning the
+# whole file was useless in both directions: it fired on ", cache" matching
+# ", ca", and it fired on comments that NAME a place while explaining why one
+# must never be hardcoded.
+_PLACE_HINTS = ("new jersey", "new york", "california", "texas", "london",
+                "boston", "chicago", "seattle", "austin", "denver")
+_PLACE_RE = re.compile(r"^[A-Z][A-Za-z.\- ]+,\s*(?:[A-Z]{2}|[A-Z][a-z]+(?: [A-Z][a-z]+)*)$")
+
+
+def _hardcoded_places(path):
+    """Every string default in `path` that looks like a real-world location."""
+    import ast as _a
+    bad = []
+    try:
+        tree = _a.parse(open(path, errors="ignore").read())
+    except SyntaxError:
+        return bad
+
+    def suspect(val, where):
+        if not isinstance(val, str) or len(val) < 4:
+            return
+        low = val.lower()
+        if any(h in low for h in _PLACE_HINTS) or _PLACE_RE.match(val.strip()):
+            bad.append(f"{os.path.basename(path)}:{where} {val!r}")
+
+    for node in _a.walk(tree):
+        # os.getenv("NEO_X", "somewhere")
+        if isinstance(node, _a.Call) and len(node.args) == 2:
+            fn = node.func
+            name = getattr(fn, "attr", None) or getattr(fn, "id", None)
+            if name in ("getenv", "environ_get", "get"):
+                d = node.args[1]
+                if isinstance(d, _a.Constant):
+                    suspect(d.value, getattr(node, "lineno", "?"))
+        # PLACE = "somewhere"  /  HOME_TOWN = "somewhere"
+        if isinstance(node, _a.Assign) and isinstance(node.value, _a.Constant):
+            for t in node.targets:
+                n = (getattr(t, "id", "") or "").lower()
+                if any(w in n for w in ("place", "town", "home", "city", "location")):
+                    suspect(node.value.value, getattr(node, "lineno", "?"))
+    return bad
+
+
 _place_leaks = []
 for f in SHIPPED:
-    if not f.endswith(".py"):
-        continue
-    for i, line in enumerate(open(f, errors="ignore").read().splitlines(), 1):
-        low = line.lower()
-        if "getenv(" not in low and "default" not in low:
-            continue
-        if any(h in low for h in _PLACE_HINTS):
-            _place_leaks.append(f"{f}:{i}")
+    if f.endswith(".py"):
+        _place_leaks += _hardcoded_places(f)
 check("no real place is hardcoded as a default"
       + (f"  <-- {_place_leaks}" if _place_leaks else ""), not _place_leaks)
 
 import agent as _agent_mod
+def _code_only(path):
+    """Source with comments and docstrings stripped. A comment may NAME a place
+    while explaining why one must not be hardcoded — that is documentation, not
+    a default. Checking raw text made this guard fail on its own explanation."""
+    import ast as _a, io, tokenize
+    out = []
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO(open(path, errors="ignore").read()).readline):
+            if tok.type in (tokenize.COMMENT, tokenize.STRING):
+                continue
+            out.append(tok.string)
+    except Exception:
+        return ""
+    return " ".join(out).lower()
+
 check("weather: the home town is derived, not written into the source",
       callable(getattr(_agent_mod, "_home_town", None))
-      and "Warren" not in open("agent.py", errors="ignore").read())
+      and not any(h in _code_only("agent.py") for h in _PLACE_HINTS))
 check("weather: with nowhere known it ASKS instead of inventing a place",
       "I don't know where you are" in open("agent.py", errors="ignore").read())
 
@@ -157,7 +216,7 @@ check("weather: with nowhere known it ASKS instead of inventing a place",
 # they could act on. A release is not the files you remembered to copy.
 def _unresolved_imports():
     import ast as _ast
-    here = os.path.dirname(os.path.abspath(__file__))
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     local = {os.path.splitext(f)[0] for f in os.listdir(here) if f.endswith(".py")}
     tracked = set(os.popen("git ls-files '*.py'").read().split())
     if not tracked:                      # not a git checkout: fall back to disk
@@ -220,7 +279,7 @@ check("no key: 'add my key' is heard, and ordinary sentences are not",
 # Only what is routed by a fixed phrase in the chain can work with no model, so
 # the docs may only promise THAT.
 _rm = open("README.md", encoding="utf-8").read().lower()
-_ft = open("FEATURES.md", encoding="utf-8").read().lower()
+_ft = open("docs/FEATURES.md", encoding="utf-8").read().lower()
 check("no key: the README says so, and does not promise a dead product",
       "no key" in _rm and "skip it and neo still\ntalks" not in _rm)
 for _doc, _name in ((_rm, "README"), (_ft, "FEATURES")):

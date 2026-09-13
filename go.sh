@@ -41,13 +41,14 @@ unset NEO_LIVE_TESTS NEO_LIVE_CLICK
 # after almost every run. The tests check routing, parsing and wiring; not one
 # of them needs a real speaker. See the stub at the top of neo.py.
 run_suite() {
-  local name="$1" out rc
+  local name="$1" out rc short
+  short="$(basename "$name")"
   out=$(NEO_NO_AUDIO=1 .venv/bin/python "$name" 2>&1); rc=$?
   if [ $rc -eq 0 ]; then
-    printf "  %-22s %s\n" "$name" "$(echo "$out" | tail -1)"
+    printf "  %-22s %s\n" "$short" "$(echo "$out" | tail -1)"
   else
     fail=1
-    printf "  %-22s FAILED (exit %d)\n" "$name" "$rc"
+    printf "  %-22s FAILED (exit %d)\n" "$short" "$rc"
     echo "$out" | grep -E "^(FAIL|MISROUTE|Traceback|[A-Za-z]*Error)" | head -12
     echo "$out" | tail -4
   fi
@@ -62,9 +63,13 @@ run_suite() {
 #
 # SKIP is only for suites that need something this machine may not have (a
 # logged-in Claude CLI, a live model). Each one names why.
+# Suites live in tests/ so the repo root stays readable on GitHub (a hundred
+# files pushed the README below the fold). They still RUN from the root, which
+# is what keeps open("neo.py") and sys.path.insert(0, ".") working inside them.
 SKIP="test_claude_live.py test_live_tools.py"   # need a logged-in claude CLI + live API
-for suite in test_*.py; do
-  case " $SKIP " in *" $suite "*) printf "  %-22s skipped (needs a live account)\n" "$suite"; continue;; esac
+for suite in tests/test_*.py; do
+  base="$(basename "$suite")"
+  case " $SKIP " in *" $base "*) printf "  %-22s skipped (needs a live account)\n" "$base"; continue;; esac
   run_suite "$suite"
 done
 
