@@ -30,8 +30,11 @@ FAILED = []
 
 # The owner's own working notes. Gitignored, never in a release checkout, and
 # full of names by design — scanning them would fail forever for no reason.
+# Basenames. The owner's own gitignored notes — never in a release checkout,
+# full of real names by design, and scanning them fails forever for no reason.
 NOT_SHIPPED = {"CLAUDE.local.md", "PROJECT_NOTES.md", "CONVOREPORT.md",
-               "FINDINGS.md", "TESTREPORT.md", "docs/HANDOFF.md"}
+               "FINDINGS.md", "TESTREPORT.md", "HANDOFF.md",
+               "2026_ppr_draft_strategy.md"}
 # CLAUDE.md is NOT on that list on purpose. It ships, because frame_goal() and
 # selfrepair.py both tell Claude Code to read it, and on a fresh install it did
 # not exist — every handed-off job started with no project context at all. The
@@ -46,10 +49,18 @@ def check(name, cond):
 
 
 # ---- 1. no trace of the first owner in what ships ----
+# TESTS ARE SHIPPED CODE. They were excluded from this scan because fixtures
+# need names — and that exemption is exactly how the author's real school
+# timetable reached a public repository: their classes, their room numbers,
+# their after-school club and a local business, sitting in test_calendar.py
+# and test_highlight.py where nothing was looking.
+#
+# Fixtures may still use invented people (Priya, Dean, Dana Ortiz). What they
+# may not contain is anything on the deny list — which is the owner's real
+# world. If a fixture needs a name, make one up.
 SHIPPED = [f for f in glob.glob("*.py") + glob.glob("skills/*.py") + glob.glob("*.sh")
-           + glob.glob("*.md")
-           if not f.startswith("test_") and os.path.exists(f)
-           and f not in NOT_SHIPPED]
+           + glob.glob("*.md") + glob.glob("docs/*.md") + glob.glob("tests/*.py")
+           if os.path.exists(f) and os.path.basename(f) not in NOT_SHIPPED]
 # Case-INSENSITIVE, and that is the whole point of reading a list rather than
 # comparing exact strings. The first version of this test matched the owner's
 # name and their other product's name LITERALLY, and passed a build that
@@ -97,7 +108,8 @@ check("the deny list itself is not committed",
 # at a GitHub account, so the owner's handle may appear inside a github.com URL
 # and nowhere else. Written as a strip-then-scan rather than a skipped file, so
 # a name dropped into install.sh's prose still fails.
-_REPO_URL = re.compile(r"https://(?:raw\.)?github(?:usercontent)?\.com/[^\s\"'`)]*", re.I)
+_REPO_URL = re.compile(
+    r"(?:https://)?(?:raw\.)?github(?:usercontent)?\.com/[^\s\"'`)]*", re.I)
 # The second narrow exception: a copyright line. AGPL-3.0 was chosen precisely
 # so the sole author keeps the right to relicense commercially, and that right
 # depends on the copyright holder being NAMED. So "Copyright (C) <year> <who>"
@@ -115,9 +127,9 @@ for f in SHIPPED:
 _probe = _REPO_URL.sub(" <repo-url> ", "see https://github.com/Someone0/neo — ask someone")
 check("the repo-url exception does not excuse a name in prose",
       "<repo-url>" in _probe and "ask someone" in _probe)
-_probe2 = _COPYRIGHT.sub(" <copyright-line> ", "Copyright (C) 2026 someone\nwritten by aryan")
+_probe2 = _COPYRIGHT.sub(" <copyright-line> ", "Copyright (C) 2026 someone\nwritten by jordan")
 check("the copyright exception covers only that one line",
-      "aryan" in _probe2 and "someone" not in _probe2)
+      "jordan" in _probe2 and "someone" not in _probe2)
 
 # The guard on the guard: if this file ever stops lowercasing, say so loudly.
 check("the personal-trace scan is case-insensitive",
@@ -391,9 +403,20 @@ import onboard
 mem_path = memory.MEMORY_PATH
 memory.MEMORY_PATH = os.path.join(tempfile.mkdtemp(), "memory.json")
 try:
-    onboard.save_about({"name": "Dana", "role": "nurse", "length": "long", "notes": "I work nights at St Mary's. My sister is Ana"})
+    onboard.save_about({"name": "Dana", "role": "nurse", "length": "long",
+                        "place": "Leeds, UK",
+                        "notes": "I work nights at St Mary's. My sister is Ana"})
     p = person.load()
     check("about: name and role saved to the profile", p["person"]["first_name"] == "Dana" and p["person"]["role"] == "nurse")
+    # Location is the one REQUIRED answer. "What's the weather" and "what time
+    # is it" are among the first things anyone asks, and answering for the wrong
+    # town is worse than not answering — which is how a hardcoded home town came
+    # to be published and wrong for everybody but one person.
+    check("about: where they live reaches the profile", p["person"].get("place") == "Leeds, UK")
+    import importlib as _il, agent as _agp
+    _il.reload(_agp)
+    check("about: and the weather tool reads it instead of guessing",
+          _agp._home_town() == "Leeds, UK")
     check("about: answer length becomes the response preference", p["response"]["length"] == "long")
     facts = [f["text"] for f in memory.load_memory()["facts"]]
     check("about: the notes become memory facts", any("St Mary" in f for f in facts) and any("Ana" in f for f in facts))
@@ -401,6 +424,16 @@ try:
 finally:
     memory.MEMORY_PATH = mem_path
 html = onboard._HTML
+check("about: there is a location question, marked as needed",
+      'id="aPlace"' in html and 'class="req">needed' in html)
+check("about: you cannot continue without answering it",
+      "if (!place.value.trim())" in html and 'place.classList.add("bad")' in html)
+check("about: it is pre-filled from the Mac's own timezone, so it's a confirm",
+      callable(getattr(onboard, "_mac_place", None))
+      and '"place": _mac_place()' in open("onboard.py").read())
+check("about: and that guess is a plain city, never a hardcoded town",
+      onboard._mac_place() == "" or "," not in onboard._mac_place())
+
 check("about: the scene exists between the key and first words", onboard._HTML.index('<section class="scene" data-s="about"') < onboard._HTML.index('<section class="scene" data-s="first"')
       and '"key","connect","about","first"' in html.replace(' ', ''))
 check("about: asks name, role, answer length, notes", all(x in html for x in ("aName", "aRole", "aLen", "aNotes")))

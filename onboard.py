@@ -107,6 +107,23 @@ NARRATION = {
 }
 
 
+def _mac_place():
+    """A first guess at the town, from the Mac's own timezone. "America/New_York"
+    -> "New York". Pre-filled so the required question is a confirm rather than
+    a chore; wrong for anyone not in the zone's namesake city, which is why it
+    is editable and why nothing is hardcoded anywhere else."""
+    try:
+        import os as _o, time as _t
+        tz = _t.tzname[0] or ""
+        path = _o.path.realpath("/etc/localtime")
+        if "/zoneinfo/" in path:
+            tz = path.split("/zoneinfo/", 1)[1]
+        city = tz.split("/")[-1].replace("_", " ").strip()
+        return "" if city.lower() in ("utc", "gmt", "universal", "local") else city
+    except Exception:
+        return ""
+
+
 def _mac_first_name():
     """The Mac's own idea of who is logged in, as a first name to prefill."""
     try:
@@ -133,6 +150,12 @@ def save_about(m, log=print):
         role = (m.get("role") or "").strip()
         if role:
             who["role"] = role
+        # Where they live. agent._home_town() reads this, so "what's the
+        # weather" and "what time is it" answer for THEIR town and never for
+        # one baked into the source.
+        place = (m.get("place") or "").strip()
+        if place:
+            who["place"] = place
         length = (m.get("length") or "").strip()
         if length in ("short", "medium", "long"):
             person.note_preference(p, {"length": length}, source="onboarding")
@@ -351,6 +374,13 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   @media (prefers-reduced-motion:reduce){
     .scene.on .step{animation:none;opacity:1;transform:none}
   }
+  .req{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+       margin-left:8px;padding:2px 7px;border-radius:999px;color:#ffd60a;
+       border:1px solid rgba(255,214,10,.32)}
+  .form label .why{display:block;margin-top:6px;font-size:12.5px;color:var(--fg3);line-height:1.45}
+  .form label .why i{font-style:italic;color:var(--fg2)}
+  .form input.bad{border-color:rgba(255,69,58,.6);box-shadow:0 0 0 3px rgba(255,69,58,.12)}
+  .badhint{min-height:17px;margin-top:2px;font-size:13px;color:#ff6961}
   [hidden]{display:none !important}
   /* ---- depth. A flat black rectangle with centred text is what "bare bones"
      means; one soft light behind the wordmark is what makes it look built. ---- */
@@ -544,6 +574,8 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
       <div class="form card arrive">
         <label>What should Neo call you?<input id="aName" type="text" autocomplete="off" spellcheck="false" placeholder="First name"></label>
         <label>What do you do?<input id="aRole" type="text" autocomplete="off" spellcheck="false" placeholder="Student · engineer · founder · teacher · parent…"></label>
+        <label>Where do you live? <span class="req">needed</span><input id="aPlace" type="text" autocomplete="off" spellcheck="false" placeholder="Town or city — e.g. Boston, or Leeds, UK">
+          <span class="why">So "what's the weather" and "what time is it" mean where <i>you</i> are. Nothing is looked up, and it never leaves your Mac except as the name of a town in a weather request.</span></label>
         <label>How do you like answers?
           <div class="seg" id="aLen">
             <button type="button" data-v="short" class="on">Short</button>
@@ -551,6 +583,7 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
             <button type="button" data-v="long">Detailed</button>
           </div></label>
         <label>Anything Neo should know? <span class="opt">optional</span><textarea id="aNotes" rows="2" placeholder="People you mention a lot, what you're working on, how you like things done…"></textarea></label>
+        <div class="badhint" id="aboutHint"></div>
       </div>
       <div class="row arrive"><button class="primary" id="aboutNext" onclick="sendAbout()">Continue</button></div>
     </section>
@@ -730,13 +763,29 @@ _HTML = r"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     });
   });
   function sendAbout(){
+    // Location is the one required answer. Everything else Neo can infer, work
+    // without, or learn later — but "what's the weather" and "what time is it"
+    // are among the first things anyone asks, and answering them for the wrong
+    // town is worse than not answering. It used to be hardcoded to the author's
+    // home town, which is exactly the wrong way to solve this.
+    var place = document.getElementById("aPlace");
+    if (!place.value.trim()){
+      place.classList.add("bad");
+      document.getElementById("aboutHint").textContent =
+        "Just the town or city — it's what makes the weather and the time yours.";
+      place.focus();
+      return;
+    }
+    place.classList.remove("bad");
     send({action:"about", name:document.getElementById("aName").value.trim(),
           role:document.getElementById("aRole").value.trim(), length:aboutLen,
+          place:place.value.trim(),
           notes:document.getElementById("aNotes").value.trim()});
     go("first");
   }
   function renderAbout(a){
     if (a.name && !document.getElementById("aName").value) document.getElementById("aName").value = a.name;
+    if (a.place && !document.getElementById("aPlace").value) document.getElementById("aPlace").value = a.place;
   }
 
   window.render = function(payload){
@@ -772,7 +821,8 @@ class Onboarding:
         self._on_done = on_done
         self._env = ENV_PATH if env_path is None else env_path
         self._mark = mark
-        self._state = {"perms": {}, "key": {}, "heard": "", "about": {"name": _mac_first_name()},
+        self._state = {"perms": {}, "key": {}, "heard": "",
+                       "about": {"name": _mac_first_name(), "place": _mac_place()},
                        "conns": {"state": {}, "note": {}}}
         self._scene = "welcome"
         self._narrated = set()
