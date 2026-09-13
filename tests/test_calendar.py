@@ -1,7 +1,7 @@
 """test_calendar.py — "find a time" against a real school week.
 
 The failure that prompted this: Neo proposed Monday 10:30 for a meeting.
-Monday 10:30 is American Literature. Neo could not see the calendar (the
+Monday 10:30 is Literature. Neo could not see the calendar (the
 Google calendar isn't in the Mac's Calendar app) and treated an empty week
 as a free one. So:
 

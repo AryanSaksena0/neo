@@ -399,14 +399,14 @@ if FAILED:
 # picker was handed a flat list of text with no positions, so it could not
 # tell the columns apart; then it returned the TEXT of its choice, and show()
 # re-found that text with find_phrase — first match on screen. Even a correct
-# pick of Friday's "AP US HISTORY" was drawn on Tuesday's. Neo then narrated
+# pick of Friday's "HISTORY" was drawn on Tuesday's. Neo then narrated
 # Thursday's classes as tomorrow's, confidently.
 def _L(text, x, y, w=8, h=2):
     return {"text": text, "x": x, "y": y, "w": w, "h": h, "conf": .9, "words": []}
 
 _GRID = [_L("TUE 8", 36, 20), _L("THU 10", 60, 20), _L("FRI 11", 76, 20),
-         _L("3 | AP US HISTORY", 36, 45), _L("3 | AP US HISTORY", 60, 45),
-         _L("3 | AP US HISTORY", 76, 70)]
+         _L("3 | HISTORY", 36, 45), _L("3 | HISTORY", 60, 45),
+         _L("3 | HISTORY", 76, 70)]
 
 def _chosen_line_is_drawn_where_it_is():
     friday = dict(_GRID[5])
@@ -416,7 +416,7 @@ check("columns: a line the model chose is drawn at ITS box, not the first "
       "match of its text", _chosen_line_is_drawn_where_it_is())
 
 def _bare_text_still_works():
-    shapes, _ = highlight.bands_for(["3 | AP US HISTORY"], _GRID)
+    shapes, _ = highlight.bands_for(["3 | HISTORY"], _GRID)
     return len(shapes) >= 1
 check("columns: a bare phrase still finds itself (the old path is intact)",
       _bare_text_still_works())

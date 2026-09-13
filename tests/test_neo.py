@@ -505,8 +505,13 @@ check("pronounce: possessive survives",
 check("pronounce: no partial-word hits",
       "Shiv-awn" not in commands.clean_for_speech("Siobhanette called"))
 commands._PRONOUNCE.clear(); commands._PRONOUNCE.update(_saved)
-check("pronounce: nothing is built in", not any(w in rx.pattern.lower() for rx in commands._PRONOUNCE
-                for w in ("aryan", "saksena")))
+# No pronunciation is compiled in for any specific person. Checked by SHAPE —
+# the patterns must be generic — rather than by naming the author, because a
+# test that lists the name it is guarding against publishes it too.
+check("pronounce: nothing is built in for one particular person",
+      all(len(rx.pattern) < 60 for rx in commands._PRONOUNCE)
+      and not any(re.search(r"[A-Z][a-z]{3,}\s+[A-Z][a-z]{3,}", rx.pattern)
+                  for rx in commands._PRONOUNCE))
 
 # ---- hands: intent parsing (pure) ----
 import hands

@@ -248,7 +248,7 @@ every running process, and all personal runtime state — `.env`,
 
 **Backed up first, in full, to:**
 
-    /Users/aryansaksena/neo-backup-20260912-013932
+    ~/neo-backup-20260912-013932
 
 That includes the 70 learned facts, the profile, both Gemini keys, and the
 signed-in browser profile. Restoring is a copy back into the repo. Kept in
